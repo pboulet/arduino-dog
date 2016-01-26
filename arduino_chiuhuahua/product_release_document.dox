@@ -1,0 +1,140 @@
+/*Additional document/information to complete the release document for this sprint.*/
+
+/*#########################################################################################################*/
+
+/*! \page product_release_main_page Release Notes:
+Foreword: provide brief description
+
+
+This product release document is divided in the following sections:
+- \subpage introduction "Introduction"
+- \subpage requirements "Requirements"
+- \subpage hardware_design "Hardware Design"
+- \subpage software_design "Software Design"
+
+For details on source code and related documentation visit respective section.
+
+*/
+
+/*#########################################################################################################*/
+
+/*! \page introduction Introduction
+Provide introduction, and abstract view of product function, and list of hardware 
+
+List of hardware:
+	- \ref hw_section_01.
+	- \ref hw_section_02.
+
+Go back to \ref product_release_main_page "Release Note:Main Menu".
+
+*/
+
+/*#########################################################################################################*/
+
+/*! \page requirements Requirements
+Provide details of functional requirements for the sprint.
+
+ 	
+Go back to \ref product_release_main_page "Release Note:Main Menu".
+
+*/
+
+/*#########################################################################################################*/
+
+/*! \page hardware_design Hardwre Design
+
+\tableofcontents
+provide brief details for this section.
+
+\section hw_section_01 Section 01 
+
+\image html test_image.png "Image: title"
+To load an image set the parameter IMAGE_PATH to appropriate folder in doxyfile for the project
+
+\subsection hw_subsection_01 Subsction 01
+provide details
+- \ref hw_section_02 Section 02
+- \ref hw_section_03 Section 03
+
+\subsection hw_subsection_02
+Table
+	|	Column 1				| Column 2 				|			Details																		|
+	|---------------------------|-----------------------|---------------------------------------------------------------------------------------|	 
+	|	Details					| Details				|	Details																				|
+	|	Details					| Details				|	Details																				|
+	|	Details					| Details				|	Details																				|
+
+
+Go to \ref hardware_design "Top" / \ref product_release_main_page "Release Note:Main Menu".
+ 
+\n\n
+\section hw_section_02 Section 02
+
+\image html test_image.png "Image: title"
+To load an image set the parameter IMAGE_PATH to appropriate folder in doxyfile for the project
+
+\subsection hw_subsection_04 Subsection 04
+
+
+\n
+Go to \ref hardware_design "Top" / \ref product_release_main_page "Release Note:Main Menu".
+    
+\n \n
+\section hw_section_03 Section 03
+
+\subsection hw_subsection_05 Subsection 05
+
+Go to \ref hardware_design "Top" / \ref product_release_main_page "Release Note:Main Menu".
+
+
+*/
+
+/*#########################################################################################################*/
+
+/*! \page software_design Software Design
+
+\tableofcontents
+provide brief details for this section.
+
+\section sw_section_01 Section 01 
+
+\image html test_image.png "Image: title"
+To load an image set the parameter IMAGE_PATH to appropriate folder in doxyfile for the project
+
+\subsection sw_subsection_01 Subsction 01
+
+provide details
+- \ref sw_section_02 Section 02
+- \ref sw_section_03 Section 03
+
+\subsection sw_subsection_02
+Table
+	|	Column 1				| Column 2 				|			Details																		|
+	|---------------------------|-----------------------|---------------------------------------------------------------------------------------|	 
+	|	Details					| Details				|	Details																				|
+	|	Details					| Details				|	Details																				|
+	|	Details					| Details				|	Details																				|
+
+
+Go to \ref software_design "Top" / \ref product_release_main_page "Release Note:Main Menu".
+ 
+\n\n
+\section sw_section_02 Section 02
+
+\image html test_image.png "Image: title"
+To load an image set the parameter IMAGE_PATH to appropriate folder in doxyfile for the project
+
+\subsection sw_subsection_04 Subsection 04
+
+
+\n
+Go to \ref software_design "Top" / \ref product_release_main_page "Release Note:Main Menu".
+
+\n \n
+\section sw_section_03 Section 03
+
+\subsection sw_subsection_05 Subsection 05
+
+Go to \ref software_design "Top" / \ref product_release_main_page "Release Note:Main Menu".
+	
+*/
