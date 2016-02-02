@@ -58,7 +58,7 @@ PROJECT_LOGO =
 # entered, it will be relative to the location where doxygen was started. If
 # left blank the current directory will be used.
 
-OUTPUT_DIRECTORY = doc
+OUTPUT_DIRECTORY = "./doc"
 
 # If the CREATE_SUBDIRS tag is set to YES then doxygen will create 4096 sub-
 # directories (in 2 levels) under the output directory of each output format and
@@ -177,7 +177,7 @@ SHORT_NAMES = NO
 # description.)
 # The default value is: NO.
 
-JAVADOC_AUTOBRIEF = NO
+JAVADOC_AUTOBRIEF = YES
 
 # If the QT_AUTOBRIEF tag is set to YES then doxygen will interpret the first
 # line (until the first dot) of a Qt-style comment as the brief description. If
@@ -846,7 +846,7 @@ EXAMPLE_RECURSIVE = NO
 # that contain images that are to be included in the documentation (see the
 # \image command).
 
-IMAGE_PATH = ./images
+IMAGE_PATH = ./arduino_chiuhuahua/images
 
 # The INPUT_FILTER tag can be used to specify a program that doxygen should
 # invoke to filter for each input file. Doxygen will invoke the filter program
@@ -1558,7 +1558,7 @@ EXTRA_SEARCH_MAPPINGS =
 # If the GENERATE_LATEX tag is set to YES, doxygen will generate LaTeX output.
 # The default value is: YES.
 
-GENERATE_LATEX = YES
+GENERATE_LATEX = NO
 
 # The LATEX_OUTPUT tag is used to specify where the LaTeX docs will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
@@ -1718,7 +1718,7 @@ LATEX_BIB_STYLE = plain
 # readers/editors.
 # The default value is: NO.
 
-GENERATE_RTF = YES
+GENERATE_RTF = NO
 
 # The RTF_OUTPUT tag is used to specify where the RTF docs will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
@@ -1783,7 +1783,7 @@ RTF_SOURCE_CODE = NO
 # classes and files.
 # The default value is: NO.
 
-GENERATE_MAN = YES
+GENERATE_MAN = NO
 
 # The MAN_OUTPUT tag is used to specify where the man pages will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
@@ -1827,7 +1827,7 @@ MAN_LINKS = NO
 # captures the structure of the code including all documentation.
 # The default value is: NO.
 
-GENERATE_XML = YES
+GENERATE_XML = NO
 
 # The XML_OUTPUT tag is used to specify where the XML pages will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of

@@ -89,3 +89,6 @@ local.properties
 /FreeRTOS801
 /CEG4166_RTS_Lib
 /EmptyProject
+
+#Documentation
+/doc
