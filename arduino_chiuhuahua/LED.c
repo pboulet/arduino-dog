@@ -1,11 +1,5 @@
 #include "include/LED.h"
 
-
-/**-----------------------------------------------------------------*
- * Function: redLED                                                *
- * Returns: None                                                   *
- * Desc: Turn on or off the red LED depending on passed parameter  *
- *-----------------------------------------------------------------*/
 void redLED(int on){
 	if(on == 1){
 		DDRH |= _BV(DDH3);
@@ -17,11 +11,6 @@ void redLED(int on){
 	  }
 }
 
-/**-----------------------------------------------------------------*
- * Function: greenLED                                              *
- * Returns: None                                                   *
- * Desc: Turn on or off the green LED depending on passed parameter*
- *-----------------------------------------------------------------*/
 void greenLED(int on) {
   if(on == 1){
 	  DDRE |= _BV(DDE3);
@@ -33,12 +22,6 @@ void greenLED(int on) {
   }
 }
 
-
-/**-----------------------------------------------------------------*
- * Function: blueLED                                              *
- * Returns: None                                                   *
- * Desc: Turn on or off the blue LED depending on passed parameter *
- *-----------------------------------------------------------------*/
 void blueLED(int on) {
   if(on == 1){
 	  DDRE |= _BV(DDE5);
