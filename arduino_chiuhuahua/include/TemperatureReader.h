@@ -1,4 +1,3 @@
-
 /******************************************************************************************************************/
 /* CODING STANDARDS:
  * Program file: Section I. Prologue: description about the file, description author(s), revision control
@@ -16,23 +15,22 @@
  *
  */
 
-#ifndef THERMALSENSOR_H_
-#define THERMALSENSOR_H_
+#ifndef TEMPERATUREREADER_H_
+#define TEMPERATUREREADER_H_
 
+#include <stdlib.h>
+#include "i2cMultiMaster.h"
 
-/* --CONSTANTS--*/
-#define MASTER_ADDR  0xC0; //Master i2c address
-#define I2C_WRITE_ADDR  0xD0; //TPA81 i2c address - master write
-#define I2C_READ_ADDR  0xD1; //TPA81 i2c address - master read
+/*	CONSTANTS	*/
+#define MASTER_ADDR  0xC0; 		// Master i2c address
+#define I2C_WRITE_ADDR  0xD0; 	// TPA81 i2c address - master write
+#define I2C_READ_ADDR  0xD1; 	// TPA81 i2c address - master read
 
-#define BASE_REGISER 0x01 //Ambient temperature register
+#define BASE_REGISER 0x01 		// Ambient temperature register
 
-
-
-/*--Function Prototype--*/
-static void TaskGetTemperature(void *pvParameters);
+/*	Function Prototypes	*/
 void TemperatureSensor(void);
-uint8_t *getTempartureFromSensor(void);
+uint8_t *getTemperatureFromSensor(void);
 
 
-#endif /*THERMALSENSOR_H_ */
+#endif /*TEMPERATUREREADER_H_ */
