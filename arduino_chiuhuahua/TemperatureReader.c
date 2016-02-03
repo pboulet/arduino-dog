@@ -9,12 +9,12 @@
 #include "include/TemperatureReader.h"
 
 /*---------------------------------------  Function Declarations  -------------------------------------------------*/
-void TemperatureSensor(void);
+void InitTemperatureReader(void);
 void getTemperatureFromSensor(uint8_t*);
 
 
-void TemperatureSensor(void){
-	I2C_Master_Initialise(0xC0);
+void InitTemperatureReader(void){
+	I2C_Master_Initialise(MASTER_ADDR);
 }
 
 /*---------------------------------------  LOCAL FUNCTIONS  ------------------------------------------------------*/
@@ -29,10 +29,17 @@ void getTemperatureFromSensor(uint8_t *temperatures){
 	 * 7. Send the stop sequence.
 	 * */
 
-	uint8_t writeCommand[2] = {0xD0, 0x01};
-	temperatures[0] = 0xD1;
+	uint8_t writeCommand[2];
+	writeCommand[0] = I2C_WRITE_ADDR;
+	writeCommand[1] = BASE_REGISTER;
+
+	uint8_t *tmp = malloc(10 * sizeof(uint8_t));
+	tmp[0] = I2C_READ_ADDR;
 
 	I2C_Master_Start_Transceiver_With_Data(writeCommand,2);
-	I2C_Master_Start_Transceiver_With_Data(temperatures,10);
-	I2C_Master_Get_Data_From_Transceiver(temperatures,10);
+	I2C_Master_Start_Transceiver_With_Data(tmp,10);
+	I2C_Master_Get_Data_From_Transceiver(tmp,10);
+
+	/* Don't include the read address into our temperature results. */
+	temperatures = ++tmp;
 }
