@@ -41,5 +41,7 @@ void getTemperatureFromSensor(uint8_t *temperatures){
 	I2C_Master_Get_Data_From_Transceiver(tmp,10);
 
 	/* Don't include the read address into our temperature results. */
-	temperatures = ++tmp;
+	for ( int i = 1; i <= 10; i++){
+		temperatures[i -1] = tmp[i];
+	}
 }

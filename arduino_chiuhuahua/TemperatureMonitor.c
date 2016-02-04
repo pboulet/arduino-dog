@@ -81,7 +81,7 @@ static void TaskScheduler(void* gvParameters) {
     	ReadTemperatures(temperatures);
     	// displayLED();
     	// displayLCD();
-		vTaskDelayUntil( &xLastWakeTime, ( 100 / portTICK_PERIOD_MS ) );
+		vTaskDelayUntil( &xLastWakeTime, ( 300 / portTICK_PERIOD_MS ) );
     }
 }
 
