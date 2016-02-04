@@ -1,18 +1,8 @@
-/******************************************************************************************************************/
-/* CODING STANDARDS:
- * Program file: Section I. Prologue: description about the file, description author(s), revision control
- * 				information, references, etc.
- */
-
-/*(Doxygen help: use \brief to provide short summary and \details command can be used)*/
-
-/*!	\file template.c
- * \author provide author details
- * \date provide date
- * \brief Provide short summary on function and the contents of file
- * \details Provide detailed description
- *
- *
+/*!	\file TemperatureReader.h
+ * \author Ladan Maxamud, Patrice Boulet
+ * \date February 2nd, 2016
+ * \brief Temperature Reader Module
+ * \details Reads temperatures from a TPA81 thermal array sensor.
  */
 
 #ifndef TEMPERATUREREADER_H_
@@ -22,15 +12,20 @@
 #include "i2cMultiMaster.h"
 
 /*	CONSTANTS	*/
-#define MASTER_ADDR  0xC0; 		// Master i2c address
-#define I2C_WRITE_ADDR  0xD0; 	// TPA81 i2c address - master write
-#define I2C_READ_ADDR  0xD1; 	// TPA81 i2c address - master read
+static const uint8_t MASTER_ADDR = 0xC0; 	// Master i2c address
+#define I2C_WRITE_ADDR  0xD0; 				// TPA81 i2c address - master write
+#define I2C_READ_ADDR  	0xD1; 				// TPA81 i2c address - master read
+#define BASE_REGISTER 	0x01 				// Ambient temperature register
 
-#define BASE_REGISER 0x01 		// Ambient temperature register
+/** Initialize the module, putting TWI master to its initial standby state.
+ */
+void InitTemperatureReader(void);
 
-/*	Function Prototypes	*/
-void TemperatureSensor(void);
-uint8_t *getTemperatureFromSensor(void);
-
+/** Initialize the module, putting TWI master to its initial standby state.
+ * @return An array of 9 temperatures. The first one being the ambient
+ * 			temperature followed by 8 pixel temperatures
+ * 			read from the TPA81 thermal array sensor.
+ */
+void getTemperatureFromSensor(uint8_t*);
 
 #endif /*TEMPERATUREREADER_H_ */

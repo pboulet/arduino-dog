@@ -1,42 +1,24 @@
-/*
- * ThermalSensor.c
- *
- */
-
-/*(Doxygen help: use \brief to provide short summary and \details command can be used)*/
-
-/*!	\file template.c
- * \author Ladan Maxamud and Patrice Boulet
+/*!	\file TemperatureReader.c
+ * \author Ladan Maxamud, Patrice Boulet
  * \date January 27th 2016
- * \brief Thermal Sensor reader
+ * \brief Temperature Reader Module
  * \details This module communicates with the thermal sensor TPA81 using the I2C bus protocol.
- *
- *
- *
  */
 
 /* --Includes-- */
 #include "include/TemperatureReader.h"
 
 /*---------------------------------------  Function Declarations  -------------------------------------------------*/
-void TemperatureSensor(void);
-uint8_t *getTemperatureFromSensor(void);
+void InitTemperatureReader(void);
+void getTemperatureFromSensor(uint8_t*);
 
-/*! \brief Main entry point for temperature module
- *
- * \details This function
- * \note main() function can be only appear in one module, which is the main entry point of program;
- * hence remove it while coding a supporting module, which itself is not suppose to execute.
- *
- *
- * @return void
- */
-void TemperatureSensor(void){
-	I2C_Master_Initialise(0xC0);
+
+void InitTemperatureReader(void){
+	I2C_Master_Initialise(MASTER_ADDR);
 }
 
 /*---------------------------------------  LOCAL FUNCTIONS  ------------------------------------------------------*/
-uint8_t *getTemperatureFromSensor(void){
+void getTemperatureFromSensor(uint8_t *temperatures){
 
 	/* 1. Send a start sequence
 	 * 2. Send 0xD0 ( I2C address of the thermal sensor with the R/W bit low (even address)
@@ -47,13 +29,19 @@ uint8_t *getTemperatureFromSensor(void){
 	 * 7. Send the stop sequence.
 	 * */
 
-	uint8_t writeCommand[2] = {0xD0, 0x01};
-	uint8_t *readCommand = malloc(sizeof(uint8_t)*10);
-	readCommand[0] = 0xD1;
+	uint8_t writeCommand[2];
+	writeCommand[0] = I2C_WRITE_ADDR;
+	writeCommand[1] = BASE_REGISTER;
+
+	uint8_t *tmp = malloc(10 * sizeof(uint8_t));
+	tmp[0] = I2C_READ_ADDR;
 
 	I2C_Master_Start_Transceiver_With_Data(writeCommand,2);
-	I2C_Master_Start_Transceiver_With_Data(readCommand,10);
-	I2C_Master_Get_Data_From_Transceiver(readCommand,10);
+	I2C_Master_Start_Transceiver_With_Data(tmp,10);
+	I2C_Master_Get_Data_From_Transceiver(tmp,10);
 
-	return readCommand;
+	/* Don't include the read address into our temperature results. */
+	for ( int i = 1; i <= 10; i++){
+		temperatures[i -1] = tmp[i];
+	}
 }
