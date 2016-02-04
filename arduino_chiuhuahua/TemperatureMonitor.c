@@ -25,11 +25,14 @@
 
 /* Temperature Reader Module include file. */
 #include "TemperatureReader.h"
+#include "LED.h"
 
 
 /*-----------------------------------------------------------*/
+
 static void TaskScheduler(void*);
 void ReadTemperatures(uint8_t*);
+static void UpdateLED(uint8_t*);
 /*-----------------------------------------------------------*/
 
 /* Main program loop */
@@ -79,7 +82,7 @@ static void TaskScheduler(void* gvParameters) {
     while(1)
     {
     	ReadTemperatures(temperatures);
-    	displayLED();
+    	UpdateLED(temperatures);
     	// displayLCD();
 		vTaskDelayUntil( &xLastWakeTime, ( 300 / portTICK_PERIOD_MS ) );
     }
@@ -92,14 +95,13 @@ void ReadTemperatures(uint8_t *temperatures) {
 	getTemperatureFromSensor(temperatures);
 }
 
-static void updateLED(void *pvParameters)
+static void UpdateLED(uint8_t *temperatures)
 {
-    uint8_t *params = (uint8_t *) pvParameters;
 
     int tempTotal = 0;
     for (int i = 0; i < 8; ++i)
     {
-    	tempTotal += params[i];
+    	tempTotal += temperatures[i];
     }
     int tempAverage = tempTotal / 8;
 
