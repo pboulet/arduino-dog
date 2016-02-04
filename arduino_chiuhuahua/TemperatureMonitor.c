@@ -26,13 +26,15 @@
 /* Temperature Reader Module include file. */
 #include "TemperatureReader.h"
 #include "LED.h"
+#include "lcd.h"
 
 
 /*-----------------------------------------------------------*/
 
 static void TaskScheduler(void*);
-void ReadTemperatures(uint8_t*);
+static void ReadTemperatures(uint8_t*);
 static void UpdateLED(uint8_t*);
+static void DisplayTemperatures(uint8_t*);
 /*-----------------------------------------------------------*/
 
 /* Main program loop */
@@ -50,6 +52,7 @@ int main(void)
 
 	/* Initialize all modules before enabling interrupts. */
 	InitTemperatureReader();
+	initLCD();
 	//InitLED();
 	//InitLCD();
 
@@ -83,15 +86,15 @@ static void TaskScheduler(void* gvParameters) {
     {
     	ReadTemperatures(temperatures);
     	UpdateLED(temperatures);
-    	// displayLCD();
-		vTaskDelayUntil( &xLastWakeTime, ( 300 / portTICK_PERIOD_MS ) );
+    	DisplayTemperatures(temperatures);
+		vTaskDelayUntil( &xLastWakeTime, ( 200 / portTICK_PERIOD_MS ) );
     }
 }
 
 /** Gets temperature readings from the TPA81 thermal array sensor.
  *  @param[temperatures] an array to hold the 9 temperatures to be read
  */
-void ReadTemperatures(uint8_t *temperatures) {
+static void ReadTemperatures(uint8_t *temperatures) {
 	getTemperatureFromSensor(temperatures);
 }
 
@@ -123,6 +126,32 @@ static void UpdateLED(uint8_t *temperatures)
     	blueLED(0);
     	greenLED(1);
     }
+}
+
+static void DisplayTemperatures(uint8_t *temperatures) {
+	clearLCD();
+
+	char topRow[16];
+	sprintf(topRow,
+		"%02d %02d %02d %02d [%02d]",
+		temperatures[1],
+		temperatures[2],
+		temperatures[3],
+		temperatures[4],
+		temperatures[0]);
+
+	writeLCDRowOne(topRow);
+
+	char bottomRow[16];
+
+	sprintf(bottomRow,
+		"%02d %02d %02d %02d",
+		temperatures[5],
+		temperatures[6],
+		temperatures[7],
+		temperatures[8]);
+
+	writeLCDRowTwo(bottomRow);
 }
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask,
