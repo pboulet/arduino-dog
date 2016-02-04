@@ -79,7 +79,7 @@ static void TaskScheduler(void* gvParameters) {
     while(1)
     {
     	ReadTemperatures(temperatures);
-    	// displayLED();
+    	displayLED();
     	// displayLCD();
 		vTaskDelayUntil( &xLastWakeTime, ( 300 / portTICK_PERIOD_MS ) );
     }
@@ -90,6 +90,37 @@ static void TaskScheduler(void* gvParameters) {
  */
 void ReadTemperatures(uint8_t *temperatures) {
 	getTemperatureFromSensor(temperatures);
+}
+
+static void updateLED(void *pvParameters)
+{
+    uint8_t *params = (uint8_t *) pvParameters;
+
+    int tempTotal = 0;
+    for (int i = 0; i < 8; ++i)
+    {
+    	tempTotal += params[i];
+    }
+    int tempAverage = tempTotal / 8;
+
+    if (tempAverage >= 40)
+    {
+    	blueLED(0);
+    	greenLED(0);
+    	redLED(1);
+    }
+    else if (tempAverage < 30)
+    {
+    	redLED(0);
+    	greenLED(0);
+    	blueLED(1);
+    }
+    else
+    {
+    	redLED(0);
+    	blueLED(0);
+    	greenLED(1);
+    }
 }
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask,
