@@ -33,6 +33,10 @@
 
 static void TaskScheduler(void*);
 static void ReadTemperatures(uint8_t*);
+
+/**Sets the Hydrogen Wifi shield LED based on the temperature readings
+ * @param[in] Array of eight uint8_t, representing the 8-pixel temperature readings
+ */
 static void UpdateLED(uint8_t*);
 static void DisplayTemperatures(uint8_t*);
 /*-----------------------------------------------------------*/
@@ -100,7 +104,7 @@ static void ReadTemperatures(uint8_t *temperatures) {
 
 static void UpdateLED(uint8_t *temperatures)
 {
-
+	//Calculate the average temperature of all readings
     int tempTotal = 0;
     for (int i = 0; i < 8; ++i)
     {
@@ -108,18 +112,21 @@ static void UpdateLED(uint8_t *temperatures)
     }
     int tempAverage = tempTotal / 8;
 
+	//If the temperature is above 40, exclusively turn on the red LED
     if (tempAverage >= 40)
     {
     	blueLED(0);
     	greenLED(0);
     	redLED(1);
     }
+	//If the temperature is below, exclusively turn on the blue LED
     else if (tempAverage < 30)
     {
     	redLED(0);
     	greenLED(0);
     	blueLED(1);
     }
+	//If the temperature is between 30 and 40, exclusively turn on the green LED
     else
     {
     	redLED(0);
