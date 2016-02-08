@@ -8,43 +8,38 @@
 #define _LCD_H_
 
 /*----------------------------------------------------------------------------
- * Description:
- * 		Define system variables needed to establish serial connection to
- *      LCD component
- *
- * Parameters:
- * 		None
+ *! \fn initLCD(void)
+ * \brief Define system variables needed to establish serial connection to LCD component
  *----------------------------------------------------------------------------*/
 void initLCD(void);
 
 /*----------------------------------------------------------------------------
- * Description:
- * 		Control methods used as the foundation for subsequent methods
+ *! \fn writeLCD(char*)
+ * \brief Writes string to entire LCD
  *
- * Parameters:
- * 		uint8_t (hexadecimal command)
- *      char* (character array)
- *----------------------------------------------------------------------------*/
-void send_ext_cmd(uint8_t);
-void send_chars(char*);
-
-/*----------------------------------------------------------------------------
- * Description:
- * 		Writes string to entire LCD, first Row or Second Row respectively
- *
- * Parameters:
- * 		msg: Alphanumeric string to be displayed on LCD
+ * @param[msg]: Alphanumeric string to be displayed on LCD
  *----------------------------------------------------------------------------*/
 void writeLCD(char*);
+
+/*----------------------------------------------------------------------------
+ *! \fn writeLCDRowOne(char*)
+ * \brief Writes a string to the top Row of the LCD
+ *
+ * @param[msg]: Alphanumeric string to be displayed on LCD's top row
+ *----------------------------------------------------------------------------*/
 void writeLCDRowOne(char*);
+
+/*----------------------------------------------------------------------------
+ *! \fn writeLCDRowTwo(char*)
+ * \brief Writes a string to the bottom Row of the LCD
+ *
+ * @param[msg]: Alphanumeric string to be displayed on LCD's bottom row
+ *----------------------------------------------------------------------------*/
 void writeLCDRowTwo(char*);
 
 /*----------------------------------------------------------------------------
- * Description:
- * 		Clears all alphanumeric characters currently diplayed on the LCD
- *
- * Parameters:
- * 		None
+ * ! \fn clearLCD(void)
+ * \brief Clears all alphanumeric characters currently diplayed on the LCD
  *----------------------------------------------------------------------------*/
 void clearLCD(void);
 
