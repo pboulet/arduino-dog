@@ -22,6 +22,10 @@ static const uint8_t MASTER_ADDR = 0xC0; 	// Master i2c address
 void InitTemperatureReader(void);
 
 /** Initialize the module, putting TWI master to its initial standby state.
+ *
+ * @param[uint8_t*] A pointer to an array of 9 uin8_t values to read
+ * the temperature in.
+ *
  * @return An array of 9 temperatures. The first one being the ambient
  * 			temperature followed by 8 pixel temperatures
  * 			read from the TPA81 thermal array sensor.
