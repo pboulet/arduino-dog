@@ -24,10 +24,10 @@
 #include "usartserial.h"
 
 /* Temperature Reader Module include file. */
-#include "TemperatureReader.h"
-#include "LED.h"
-#include "lcd.h"
-
+#include "include/TemperatureReader.h"
+#include "include/LED.h"
+#include "include/lcd.h"
+#include "include/motion.h"
 
 /*-----------------------------------------------------------*/
 
@@ -57,6 +57,7 @@ int main(void)
 	/* Initialize all modules before enabling interrupts. */
 	InitTemperatureReader();
 	initLCD();
+	motion_init();
 	//InitLED();
 	//InitLCD();
 
@@ -85,12 +86,21 @@ static void TaskScheduler(void* gvParameters) {
 	xLastWakeTime = xTaskGetTickCount();
 
 	uint8_t *temperatures = malloc(sizeof(uint8_t)*9);
+	motion_servo_set_pulse_width(MOTION_WHEEL_LEFT,MAX_PULSE_WIDTH_TICKS);
+	motion_servo_set_pulse_width(MOTION_WHEEL_RIGHT,MIN_PULSE_WIDTH_TICKS);
 
     while(1)
     {
-    	ReadTemperatures(temperatures);
-    	UpdateLED(temperatures);
-    	DisplayTemperatures(temperatures);
+    	//ReadTemperatures(temperatures);
+    	//UpdateLED(temperatures);
+    	//DisplayTemperatures(temperatures);
+    	//motion_servo_start(MOTION_WHEEL_LEFT);
+    	//motion_servo_start(MOTION_WHEEL_RIGHT);
+    	motion_servo_start(MOTION_SERVO_CENTER);
+		vTaskDelayUntil( &xLastWakeTime, ( 2000 / portTICK_PERIOD_MS ) );
+		//motion_servo_stop(MOTION_WHEEL_LEFT);
+		//motion_servo_stop(MOTION_WHEEL_RIGHT);
+		motion_servo_stop(MOTION_SERVO_CENTER);
 		vTaskDelayUntil( &xLastWakeTime, ( 200 / portTICK_PERIOD_MS ) );
     }
 }

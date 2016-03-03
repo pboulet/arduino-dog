@@ -7,7 +7,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <motion.h>
+#include "include/motion.h"
 
 /******************************************************************************
  *    DEFINES
