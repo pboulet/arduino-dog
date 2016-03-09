@@ -3,19 +3,11 @@
 
 #include "avr/io.h"
 
-/**Turns the red LED on or off
- * @param[in] TRUE to turn the LED on. FALSE to turn it off.
+/**Turns on the LED passed as a parameter, or turns the LED off
+ * @param[in] LED to turn on, or parameter to turn off LED.
  */
-void redLED(int on);
+void lightLED(char light);
 
-/**Turns the green LED on or off
- * @param[in] TRUE to turn the LED on. FALSE to turn it off.
- */
-void greenLED(int on);
 
-/**Turns the blue LED on or off
- * @param[in] TRUE to turn the LED on. FALSE to turn it off.
- */
-void blueLED(int on);
 
 #endif

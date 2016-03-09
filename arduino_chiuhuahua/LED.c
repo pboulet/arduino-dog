@@ -1,5 +1,35 @@
 #include "LED.h"
 
+
+
+/**
+ * Function: lightLED
+ * Returns: None
+ * Desc: Turn on the proper LED depending on passed parameter
+ */
+void lightLED(char light){
+    if(light == 'r'){
+        redLED(1);
+    }
+    if(light == 'g'){
+        greenLED(1);
+    }
+    if(light == 'b'){
+        blueLED(1);
+    }
+    if(light == 'w'){
+        redLED(1);
+        greenLED(1);
+        blueLED(1);
+    }
+    if(light == 'o'){
+        redLED(0);
+        greenLED(0);
+        blueLED(0);
+    }
+}
+
+
 /**
  * Function: redLED
  * Returns: None
