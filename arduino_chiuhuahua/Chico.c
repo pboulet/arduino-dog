@@ -24,8 +24,8 @@
 #include "usartserial.h"
 
 /* Temperature Reader Module include file. */
-#include "include/TemperatureReader.h"
-#include "include/LED.h"
+#include "include/temperatureReader.h"
+#include "include/led.h"
 #include "include/lcd.h"
 #include "include/motion.h"
 
@@ -59,7 +59,6 @@ int main(void)
 	initLCD();
 	motion_init();
 	//InitLED();
-	//InitLCD();
 
 	xTaskCreate(TaskScheduler,  (const portCHAR *)"Scheduler" , 256, NULL, 3,  NULL );
 
@@ -89,14 +88,69 @@ static void TaskScheduler(void* gvParameters) {
 	motion_servo_set_pulse_width(MOTION_WHEEL_LEFT,MAX_PULSE_WIDTH_TICKS);
 	motion_servo_set_pulse_width(MOTION_WHEEL_RIGHT,MIN_PULSE_WIDTH_TICKS);
 
+	uint32_t ticCountLeft;
+	uint32_t ticCountRight;
+
+	uint32_t oneRotLeft;
+	uint32_t oneRotRight;
+
+	uint32_t observationLeftCtr;
+	uint32_t observationRightCtr;
+
     while(1)
     {
     	//ReadTemperatures(temperatures);
     	//UpdateLED(temperatures);
     	//DisplayTemperatures(temperatures);
-    	//motion_servo_start(MOTION_WHEEL_LEFT);
-    	//motion_servo_start(MOTION_WHEEL_RIGHT);
-    	motion_servo_start(MOTION_SERVO_CENTER);
+    	motion_servo_start(MOTION_WHEEL_LEFT);
+    	motion_servo_start(MOTION_WHEEL_RIGHT);
+
+    	ticCountLeft = 0;
+    	ticCountRight = 0;
+
+    	oneRotLeft = 0;
+    	oneRotRight = 0;
+
+    	observationLeftCtr = 0;
+
+
+    	while(observationLeftCtr < 32 || observationRightCtr < 32) {
+    		int leftReadSuccessful = motion_enc_read(MOTION_WHEEL_LEFT, &ticCountLeft);
+        	int rightReadSuccessful = motion_enc_read(MOTION_WHEEL_RIGHT, &ticCountRight);
+
+        	//usart_printf_P(PSTR("Right tick count: %u  m/s \r\n"), ticCountRight ); // needs heap_1 or heap_2 for this function to succeed.
+        	//usart_printf_P(PSTR("Left tick count: %u m/s \r\n"), ticCountLeft ); // needs heap_1 or heap_2 for this function to succeed.
+
+        	if(leftReadSuccessful > 0 && observationLeftCtr < 32){
+            	//usart_printf_P(PSTR("Observations count %u  m/s \r\n"), observationCtr ); // needs heap_1 or heap_2 for this function to succeed.
+            	oneRotLeft += ticCountLeft;
+        		observationLeftCtr += 1;
+        	}
+
+        	if(rightReadSuccessful > 0 && observationRightCtr < 32){
+            	oneRotRight += ticCountRight;
+            	observationRightCtr += 1;
+        	}
+    	}
+
+    	float avgSpeedLeft  = (0.1728F/32) / (((float)oneRotLeft / 32.0F) * 0.0000005F);
+    	float avgSpeedRight = (0.1728F/32) / (((float)oneRotLeft /32.0F) * 0.0000005F);
+
+    	usart_printf_P(PSTR("Right: %f  m/s \r\n"), avgSpeedRight ); // needs heap_1 or heap_2 for this function to succeed.
+    	usart_printf_P(PSTR("Left: %f m/s \r\n"), avgSpeedLeft ); // needs heap_1 or heap_2 for this function to succeed.
+
+/*    	char* stringLeft = "";
+    	sprintf(stringLeft,"Left:  %d m/s", oneRotLeft);
+    	writeLCDRowOne(stringLeft);
+
+    	char* stringRight = "";
+    	sprintf(stringRight,"Right: %d m/s", oneRotRight);
+    	writeLCDRowTwo(stringRight);*/
+
+    	//usart_printf_P(PSTR("Right: %d m/s \r\n"), oneRotRight ); // needs heap_1 or heap_2 for this function to succeed.
+    	//usart_printf_P(PSTR("Left: %d m/s \r\n"), oneRotLeft ); // needs heap_1 or heap_2 for this function to succeed.
+
+//    	motion_servo_start(MOTION_SERVO_CENTER);
 		vTaskDelayUntil( &xLastWakeTime, ( 2000 / portTICK_PERIOD_MS ) );
 		//motion_servo_stop(MOTION_WHEEL_LEFT);
 		//motion_servo_stop(MOTION_WHEEL_RIGHT);
@@ -176,4 +230,3 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask,
 {
 	while(1);
 }
-
