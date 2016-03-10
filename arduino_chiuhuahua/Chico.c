@@ -25,6 +25,7 @@
 
 /* Temperature Reader Module include file. */
 #include "include/temperatureReader.h"
+#include "include/MotionControl.h"
 #include "include/led.h"
 #include "include/lcd.h"
 #include "include/motion.h"
@@ -33,12 +34,15 @@
 
 static void TaskScheduler(void*);
 static void ReadTemperatures(uint8_t*);
+static void ReadSpeed(float*, float*, float*);
+static void Move(MotionMode);
 
 /**Sets the Hydrogen Wifi shield LED based on the temperature readings
  * @param[in] Array of eight uint8_t, representing the 8-pixel temperature readings
  */
 static void UpdateLED(uint8_t*);
 static void DisplayTemperatures(uint8_t*);
+static void UpdateInstrumentCluster(float*, float*, uint8_t*, float*);
 /*-----------------------------------------------------------*/
 
 /* Main program loop */
@@ -85,78 +89,33 @@ static void TaskScheduler(void* gvParameters) {
 	xLastWakeTime = xTaskGetTickCount();
 
 	uint8_t *temperatures = malloc(sizeof(uint8_t)*9);
-	motion_servo_set_pulse_width(MOTION_WHEEL_LEFT,MAX_PULSE_WIDTH_TICKS);
-	motion_servo_set_pulse_width(MOTION_WHEEL_RIGHT,MIN_PULSE_WIDTH_TICKS);
+	float *speedLeft = malloc(sizeof(float));
+	float *speedRight = malloc(sizeof(float));
+	float * distance = malloc(sizeof(float));
 
-	uint32_t ticCountLeft;
-	uint32_t ticCountRight;
+		for(int i = 0; i < 1000; i++){
+			Move(FORWARD);
+			ReadSpeed(speedLeft, speedRight, distance);
+			UpdateInstrumentCluster(speedLeft, speedRight, temperatures, distance);
+		}
 
-	uint32_t oneRotLeft;
-	uint32_t oneRotRight;
-
-	uint32_t observationLeftCtr;
-	uint32_t observationRightCtr;
-
-    while(1)
-    {
-    	//ReadTemperatures(temperatures);
-    	//UpdateLED(temperatures);
-    	//DisplayTemperatures(temperatures);
-    	motion_servo_start(MOTION_WHEEL_LEFT);
-    	motion_servo_start(MOTION_WHEEL_RIGHT);
-
-    	ticCountLeft = 0;
-    	ticCountRight = 0;
-
-    	oneRotLeft = 0;
-    	oneRotRight = 0;
-
-    	observationLeftCtr = 0;
+//		while(1){
+//			Move(STOP);
+//			ReadSpeed(speedLeft, speedRight, distance);
+//			ReadSpeed(speedLeft, speedRight, distance);
+//			UpdateInstrumentCluster(speedLeft, speedRight, temperatures, distance);
+//		}
 
 
-    	while(observationLeftCtr < 32 || observationRightCtr < 32) {
-    		int leftReadSuccessful = motion_enc_read(MOTION_WHEEL_LEFT, &ticCountLeft);
-        	int rightReadSuccessful = motion_enc_read(MOTION_WHEEL_RIGHT, &ticCountRight);
+	//ReadTemperatures(temperatures);
+	//UpdateLED(temperatures);
+    //DisplayTemperatures(temperatures);
+	motion_servo_start(MOTION_WHEEL_LEFT);
+    motion_servo_start(MOTION_WHEEL_RIGHT);
+}
 
-        	//usart_printf_P(PSTR("Right tick count: %u  m/s \r\n"), ticCountRight ); // needs heap_1 or heap_2 for this function to succeed.
-        	//usart_printf_P(PSTR("Left tick count: %u m/s \r\n"), ticCountLeft ); // needs heap_1 or heap_2 for this function to succeed.
-
-        	if(leftReadSuccessful > 0 && observationLeftCtr < 32){
-            	//usart_printf_P(PSTR("Observations count %u  m/s \r\n"), observationCtr ); // needs heap_1 or heap_2 for this function to succeed.
-            	oneRotLeft += ticCountLeft;
-        		observationLeftCtr += 1;
-        	}
-
-        	if(rightReadSuccessful > 0 && observationRightCtr < 32){
-            	oneRotRight += ticCountRight;
-            	observationRightCtr += 1;
-        	}
-    	}
-
-    	float avgSpeedLeft  = (0.1728F/32) / (((float)oneRotLeft / 32.0F) * 0.0000005F);
-    	float avgSpeedRight = (0.1728F/32) / (((float)oneRotLeft /32.0F) * 0.0000005F);
-
-    	usart_printf_P(PSTR("Right: %f  m/s \r\n"), avgSpeedRight ); // needs heap_1 or heap_2 for this function to succeed.
-    	usart_printf_P(PSTR("Left: %f m/s \r\n"), avgSpeedLeft ); // needs heap_1 or heap_2 for this function to succeed.
-
-/*    	char* stringLeft = "";
-    	sprintf(stringLeft,"Left:  %d m/s", oneRotLeft);
-    	writeLCDRowOne(stringLeft);
-
-    	char* stringRight = "";
-    	sprintf(stringRight,"Right: %d m/s", oneRotRight);
-    	writeLCDRowTwo(stringRight);*/
-
-    	//usart_printf_P(PSTR("Right: %d m/s \r\n"), oneRotRight ); // needs heap_1 or heap_2 for this function to succeed.
-    	//usart_printf_P(PSTR("Left: %d m/s \r\n"), oneRotLeft ); // needs heap_1 or heap_2 for this function to succeed.
-
-//    	motion_servo_start(MOTION_SERVO_CENTER);
-		vTaskDelayUntil( &xLastWakeTime, ( 2000 / portTICK_PERIOD_MS ) );
-		//motion_servo_stop(MOTION_WHEEL_LEFT);
-		//motion_servo_stop(MOTION_WHEEL_RIGHT);
-		motion_servo_stop(MOTION_SERVO_CENTER);
-		vTaskDelayUntil( &xLastWakeTime, ( 200 / portTICK_PERIOD_MS ) );
-    }
+static void ReadSpeed(float *speedLeft, float *speedRight, float* distance) {
+	readSpeed(speedLeft, speedRight, distance);
 }
 
 /** Gets temperature readings from the TPA81 thermal array sensor.
@@ -199,6 +158,30 @@ static void UpdateLED(uint8_t *temperatures)
     }
 }
 
+static void UpdateInstrumentCluster(float* speedLeft, float* speedRight, uint8_t *temperatures, float* distance){
+	clearLCD();
+		float speed = (*speedLeft + *speedRight)/ 2.0F;
+
+		char topRow[16];
+		sprintf(topRow,
+			"%.2f %.2f",
+			speed,
+			*distance);
+
+		writeLCDRowOne(topRow);
+/*
+		char bottomRow[16];
+
+		sprintf(bottomRow,
+			"%02d %02d %02d %02d",
+			temperatures[5],
+			temperatures[6],
+			temperatures[7],
+			temperatures[8]);
+
+		writeLCDRowTwo(bottomRow);*/
+}
+
 static void DisplayTemperatures(uint8_t *temperatures) {
 	clearLCD();
 
@@ -223,6 +206,11 @@ static void DisplayTemperatures(uint8_t *temperatures) {
 		temperatures[8]);
 
 	writeLCDRowTwo(bottomRow);
+}
+
+static void Move(MotionMode mode){
+	setMotionMode(mode);
+	//set LED color
 }
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask,

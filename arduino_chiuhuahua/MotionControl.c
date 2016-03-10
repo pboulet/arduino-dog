@@ -4,19 +4,27 @@
 MotionMode motionMode;
 int rightWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;
 int leftWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;
+int moving = 0;
+const uint8_t numRisingEdgesForAvg = 8;
 
-void setTargetSpeed(int _targetSpeed, MotionMode _motionMode)
+void setMotionMode(MotionMode _motionMode)
 {
-	if (_targetSpeed == 0)
+	motionMode = _motionMode;
+
+	if (_motionMode == STOP)
 	{
 		motion_servo_stop(MOTION_WHEEL_LEFT);
 		motion_servo_stop(MOTION_WHEEL_RIGHT);
+		moving = 0;
 		return;
 	}
-	motionMode = _motionMode;
 
-	motion_servo_start(MOTION_WHEEL_LEFT);
-	motion_servo_start(MOTION_WHEEL_RIGHT);
+	if (!moving)
+	{
+		motion_servo_start(MOTION_WHEEL_LEFT);
+		motion_servo_start(MOTION_WHEEL_RIGHT);
+		moving = 1;
+	}
 
 	switch(motionMode)
 	{
@@ -64,4 +72,42 @@ void updateRobotMotion(int currentSpeedLeftWheel, int currentSpeedRightWheel) {
 
 	//motion_servo_set_pulse_width(MOTION_WHEEL_LEFT, 2500);
 	motion_servo_set_pulse_width(MOTION_WHEEL_RIGHT, rightWheelPulseWidth);
+}
+
+void readSpeed(float *speedLeft, float *speedRight, float* distance) {
+	uint32_t ticCountLeft;
+	uint32_t ticCountRight;
+
+	uint32_t oneRotLeft;
+	uint32_t oneRotRight;
+
+	uint32_t observationLeftCtr;
+	uint32_t observationRightCtr;
+
+	ticCountLeft = 0;
+	ticCountRight = 0;
+
+	oneRotLeft = 0;
+	oneRotRight = 0;
+
+	observationLeftCtr = 0;
+
+	while(observationLeftCtr < numRisingEdgesForAvg || observationRightCtr < numRisingEdgesForAvg) {
+		int leftReadSuccessful = motion_enc_read(MOTION_WHEEL_LEFT, &ticCountLeft);
+		int rightReadSuccessful = motion_enc_read(MOTION_WHEEL_RIGHT, &ticCountRight);
+
+		if(leftReadSuccessful > 0 && observationLeftCtr < numRisingEdgesForAvg){
+			oneRotLeft += ticCountLeft;
+			observationLeftCtr += 1;
+		}
+
+		if(rightReadSuccessful > 0 && observationRightCtr < numRisingEdgesForAvg){
+			oneRotRight += ticCountRight;
+			observationRightCtr += 1;
+		}
+	}
+
+	*speedLeft = (0.1728F/(float)numRisingEdgesForAvg) / (((float)oneRotLeft / (float)numRisingEdgesForAvg) * 0.0000005F);
+	*speedRight = (0.1728F/(float)numRisingEdgesForAvg) / (((float)oneRotLeft /(float)numRisingEdgesForAvg) * 0.0000005F);
+	*distance += 0.1728/numRisingEdgesForAvg;
 }
