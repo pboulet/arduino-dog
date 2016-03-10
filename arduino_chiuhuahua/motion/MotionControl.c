@@ -6,28 +6,28 @@ MotionMode motionMode;
 int rightWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;
 int leftWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;
 int moving = 0;
-const uint8_t numRisingEdgesForAvg = 8;
+const uint8_t numRisingEdgesForAvg = 32;
+
+uint16_t clockwise = 1;
 
 void initMotionControl(uint16_t* servoPosition) {
 	*servoPosition = INITIAL_PULSE_WIDTH_TICKS;
 	motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
+	motion_servo_start(MOTION_SERVO_CENTER);
 }
 
 void temperatureSweep(uint16_t* servoPosition) {
-	    while(1)
-	    {
-	    	while(*servoPosition < MAX_PULSE_WIDTH_TICKS){
-	    		*servoPosition += 10;
-	    		motion_servo_set_pulse_width(MOTION_SERVO_CENTER,*servoPosition);
-	    		//vTaskDelayUntil( &xLastWakeTime, ( 10 / portTICK_PERIOD_MS ) );
-	    	}
-
-	    	while(*servoPosition > MIN_PULSE_WIDTH_TICKS){
-	    	    		*servoPosition -= 10;
-	    	    		motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
-	    	    		//vTaskDelayUntil( &xLastWakeTime, ( 10 / portTICK_PERIOD_MS ) );
-			}
-	    }
+		if(clockwise == 1){
+			*servoPosition += 100;
+			motion_servo_set_pulse_width(MOTION_SERVO_CENTER,*servoPosition);
+			if ( *servoPosition >= MAX_PULSE_WIDTH_TICKS)
+				clockwise = 0;
+		} else {
+			*servoPosition -= 100;
+			motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
+			if ( *servoPosition <= MIN_PULSE_WIDTH_TICKS)
+				clockwise = 1;
+		}
 }
 
 void setMotionMode(MotionMode _motionMode)
@@ -76,10 +76,10 @@ void setMotionMode(MotionMode _motionMode)
  * Returns: None
  * Desc: Turn on or off the green LED depending on passed parameter
  */
-void updateRobotMotion(int currentSpeedLeftWheel, int currentSpeedRightWheel) {
+void updateRobotMotion(double currentSpeedLeftWheel, double currentSpeedRightWheel) {
 
 	//left wheel master, right wheel slave
-	double rightWheelDiff = (double)currentSpeedRightWheel / currentSpeedLeftWheel;
+	double rightWheelDiff = currentSpeedRightWheel / currentSpeedLeftWheel;
 	if (rightWheelPulseWidth < 2850)
 	{
 		//
@@ -94,7 +94,7 @@ void updateRobotMotion(int currentSpeedLeftWheel, int currentSpeedRightWheel) {
 	motion_servo_set_pulse_width(MOTION_WHEEL_RIGHT, rightWheelPulseWidth);
 }
 
-void readSpeed(float *speedLeft, float *speedRight, float* distance) {
+void readSpeed(double *speedLeft, double *speedRight, double* distance) {
 	uint32_t 	ticCountLeft = 0,
 				ticCountRight = 0,
 				oneRotLeft = 0,
@@ -117,7 +117,7 @@ void readSpeed(float *speedLeft, float *speedRight, float* distance) {
 		}
 	}
 
-	*speedLeft = (0.1728F/(float)numRisingEdgesForAvg) / (((float)oneRotLeft / (float)numRisingEdgesForAvg) * 0.0000005F);
-	*speedRight = (0.1728F/(float)numRisingEdgesForAvg) / (((float)oneRotLeft /(float)numRisingEdgesForAvg) * 0.0000005F);
-	*distance += 0.1728F/numRisingEdgesForAvg;
+	*speedLeft = (0.1728/(double)numRisingEdgesForAvg) / (((double)oneRotLeft / (double)numRisingEdgesForAvg) * 0.0000005);
+	*speedRight = (0.1728/(double)numRisingEdgesForAvg) / (((double)oneRotLeft /(double)numRisingEdgesForAvg) * 0.0000005);
+	*distance += 0.1728;
 }

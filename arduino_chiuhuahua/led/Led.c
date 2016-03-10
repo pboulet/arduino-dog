@@ -12,12 +12,18 @@ void lightLED(LEDState LED){
     {
         case RED:
             redLED(1);
+            greenLED(0);
+            blueLED(0);
             break;
         case GREEN:
             greenLED(1);
+            blueLED(0);
+            redLED(0);
             break;
         case BLUE:
+            greenLED(0);
             blueLED(1);
+            redLED(0);
             break;
         case WHITE:
             redLED(1);

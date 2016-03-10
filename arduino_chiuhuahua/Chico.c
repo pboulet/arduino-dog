@@ -73,19 +73,19 @@ static MotionMode GetMotionMode(void);
 int usartfd;
 
 /* Total distance traveled by the robot. */
-float distanceTraveled;
+double distanceTraveled;
 
 /* Holds the most current temperature reading from the thermal array sensor. */
 uint8_t *temperatures;
 
 /* Holds the most current speed reading from the encoder of the left wheel. */
-float *speedLeft;
+double *speedLeft;
 
 /* Holds the most current speed reading from the encoder of the right wheel. */
-float *speedRight;
+double *speedRight;
 
 /* Holds the most current total distance traveled by the robot. */
-float *distance;
+double *distance;
 
 /* Holds the most current position of the thermal array servo motor. */
 uint16_t *centerServoPosition;
@@ -93,16 +93,16 @@ uint16_t *centerServoPosition;
 
 typedef void (*TASK)(void);
 
-#define NUM_MINOR_CYCLES 132
-#define MINOR_CYCLE_TIME 50
+#define NUM_MINOR_CYCLES 5
+#define MINOR_CYCLE_TIME 20
 
 /* Cyclic scheduler task table. */
 TASK table[NUM_MINOR_CYCLES] = {
-		Move,
 		ReadTemperatures,
+		Move,
+		UpdateLED,
 		ReadSpeed,
-		UpdateInstrumentCluster,
-		UpdateLED
+		UpdateInstrumentCluster
 };
 
 /** Main loop.  Creates tasks, set their order and start the FreeRTOS scheduler.
@@ -117,16 +117,19 @@ int main(void)
 
 	/* Initialize intertask communication variables */
 	temperatures = malloc(sizeof(uint8_t)*9);
-	speedLeft = malloc(sizeof(float));
-	speedRight = malloc(sizeof(float));
-	distance = malloc(sizeof(float));
+	speedLeft = malloc(sizeof(double));
+	speedRight = malloc(sizeof(double));
+
+	distance = malloc(sizeof(double));
+	*distance = 0;
+
 	centerServoPosition = malloc(sizeof(uint16_t));
 
 	/* Initialize all modules before enabling interrupts. */
+	motion_init();
 	initMotionControl(centerServoPosition);
 	initTemperatureReader();
 	initLCD();
-	motion_init();
 
 	xTaskCreate(CyclicScheduler,  (const portCHAR *)"Cyclic Scheduler" , 256, NULL, 3,  NULL );
 	vTaskStartScheduler();
@@ -148,10 +151,12 @@ static void CyclicScheduler(void* gvParameters) {
 	API function. */
 	xLastWakeTime = xTaskGetTickCount();
 
-	int taskNum = 0; // to cycle through schedule
+	int taskNum = 0;
+	/* Cycle through the cyclic scheduling table indefinitely. */
 	while(1) {
 		if(table[taskNum] != NULL)
-			table[taskNum]();        					// Sets minor cycle time
+			table[taskNum]();
+		/* Set minor cycle time. */
 		vTaskDelayUntil( &xLastWakeTime, ( MINOR_CYCLE_TIME / portTICK_PERIOD_MS ));
 		taskNum = (taskNum+1) % NUM_MINOR_CYCLES;
 	}
@@ -159,10 +164,11 @@ static void CyclicScheduler(void* gvParameters) {
 
 static void ReadSpeed() {
 	readSpeed(speedLeft, speedRight, distance);
+	//updateRobotMotion(*speedLeft, *speedRight);
 }
 
 static void ReadTemperatures(void) {
-	temperatureSweep(temperatures, centerServoPosition);
+	temperatureSweep(centerServoPosition);
 	getTemperatureFromSensor(temperatures);
 }
 
@@ -189,13 +195,13 @@ static void UpdateInstrumentCluster(void){
 		clearLCD();
 
 		/* Average speed of the two wheels. */
-		float speed = (*speedLeft + *speedRight)/ 2.0F;
+		double speed = (*speedLeft + *speedRight)/ 2.0;
 
 		/* Average of the first four temperature pixels from the left. */
-		float tempAvgLeft = (temperatures[0] + temperatures[1] + temperatures[2] + temperatures[3])/4.0F;
+		double tempAvgLeft = (temperatures[0] + temperatures[1] + temperatures[2] + temperatures[3])/4.0;
 
 		/* Average of the first four temperature pixels from the right. */
-		float tempAvgRight = (temperatures[4] + temperatures[5] + temperatures[6] + temperatures[7])/4.0F;
+		double tempAvgRight = (temperatures[4] + temperatures[5] + temperatures[6] + temperatures[7])/4.0;
 
 		char topRow[16];
 		char bottomRow[16];
@@ -204,20 +210,14 @@ static void UpdateInstrumentCluster(void){
 		 * Prints the average speed of the two wheels as well as the
 		 * total distance traveled on the first line of the LCD screen.
 		 */
-		sprintf(topRow,
-			"%.2f %.2f",
-			speed,
-			*distance);
+		sprintf(topRow, "%.2f %.2f", speed, *distance);
 		writeLCDRowOne(topRow);
 
 		/*
 		 * Prints the average temperature for the first four pixel sensors from the left
 		 * as well as the average temperature for the first four pixel sensors from the right.
 		 */
-		sprintf(bottomRow,
-			"%.2f %.2f",
-			tempAvgLeft,
-			tempAvgRight);
+		sprintf(bottomRow, "%.2f %.2f", tempAvgLeft, tempAvgRight);
 		writeLCDRowTwo(bottomRow);
 }
 
@@ -225,16 +225,26 @@ static void Move(void){
 	setMotionMode(GetMotionMode());
 }
 
+/**
+ * Gets the current motion mode (or direction)
+ * of the robot.
+ *
+ * It currently follows a static demo
+ * choregraphy where it goes 1m forward,
+ * 1m backward, does a full 360 degrees rotation
+ * counter clockwise, does a full 360 degrees
+ * rotation clockwise, and finally stops.
+ */
 static MotionMode GetMotionMode(void){
-	if (distanceTraveled < 1) {
+	if ( *distance < 0.5) {
 		return FORWARD;
-	} else if (distanceTraveled < 2) {
+	} else if ( *distance < 1.0) {
 		return BACKWARD;
-	} else if ( distanceTraveled < 3) {	// need to figure out the distance for a full 360
+	} else if ( *distance < 1.5) {	// TODO: need to figure out the distance for a full 360
 		return SPINLEFT;
-	} else if ( distanceTraveled < 4) {	// need to figure out the distance for a full 360
+	} else if ( *distance < 2.0) {	// TODO: need to figure out the distance for a full 360
 		return SPINRIGHT;
-	} else {							// demo choregraphy is done
+	} else {						// demo choregraphy is done
 		return STOP;
 	}
 }

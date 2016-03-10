@@ -12,11 +12,11 @@ void initMotionControl(uint16_t*);
  */
 void setMotionMode(MotionMode);
 
-void updateRobotMotion(int, int);
+void updateRobotMotion(double, double);
 
-void readSpeed(float*, float*, float*);
+void readSpeed(double*, double*, double*);
 
-void temperatureSweep();
+void temperatureSweep(uint16_t*);
 
 #endif
 
