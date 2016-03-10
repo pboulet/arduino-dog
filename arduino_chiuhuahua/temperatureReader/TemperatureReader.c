@@ -6,14 +6,10 @@
  */
 
 /* --Includes-- */
-#include "include/TemperatureReader.h"
-
-/*---------------------------------------  Function Declarations  -------------------------------------------------*/
-void InitTemperatureReader(void);
-void getTemperatureFromSensor(uint8_t*);
+#include "TemperatureReader.h"
 
 
-void InitTemperatureReader(void){
+void initTemperatureReader(void){
 	I2C_Master_Initialise(MASTER_ADDR);
 }
 

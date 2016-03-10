@@ -5,9 +5,10 @@
  *      Author: Stefan Stanisic
  */
 
+#include "Motion.h"
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include "include/motion.h"
 
 /******************************************************************************
  *    DEFINES

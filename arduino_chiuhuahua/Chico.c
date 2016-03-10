@@ -23,26 +23,26 @@
 /* serial interface include file. */
 #include "usartserial.h"
 
+#include "lcd/Lcd.h"
 /* Temperature Reader Module include file. */
-#include "include/temperatureReader.h"
-#include "include/MotionControl.h"
-#include "include/led.h"
-#include "include/lcd.h"
-#include "include/motion.h"
+#include "temperatureReader/TemperatureReader.h"
+#include "motion/MotionControl.h"
+#include "led/Led.h"
+#include "motion/Motion.h"
 
 /*-----------------------------------------------------------*/
 
 static void CyclicScheduler(void*);
-static void ReadTemperatures(uint8_t*);
-static void ReadSpeed(float*, float*, float*);
-static void Move(MotionMode);
+static void ReadTemperatures(void);
+static void ReadSpeed(void);
+static void Move(void);
 
 /**Sets the Hydrogen Wifi shield LED based on the temperature readings
  * @param[in] Array of eight uint8_t, representing the 8-pixel temperature readings
  */
-static void UpdateLED(uint8_t*);
-static void DisplayTemperatures(uint8_t*);
-static void UpdateInstrumentCluster(float*, float*, uint8_t*, float*);
+static void UpdateLED(void);
+static void DisplayTemperatures(void);
+static void UpdateInstrumentCluster(void);
 /*-----------------------------------------------------------*/
 
 /* Main program loop */
@@ -52,18 +52,20 @@ uint8_t *temperatures;
 float *speedLeft;
 float *speedRight;
 float *distance;
+uint16_t *centerServoPosition;
+
 
 typedef void (*TASK)(void);
 
-#define NUM_MINOR_CYCLES
+#define NUM_MINOR_CYCLES 132
 #define MINOR_CYCLE_TIME 50
 
-TASK* table[NUM_MINOR_CYCLES] = {
+TASK table[NUM_MINOR_CYCLES] = {
 		Move,
 		ReadTemperatures,
 		ReadSpeed,
 		UpdateInstrumentCluster,
-		UpdateLED
+		UpdateLED,
 		ReadSpeed,
 		UpdateInstrumentCluster
 };
@@ -78,16 +80,18 @@ int main(void)
 
 	usart_print_P(PSTR("\r\n\n\nChico: Initializing...\r\n")); // Ok, so we're alive...
 
-	/* Initialize all modules before enabling interrupts. */
-	InitTemperatureReader();
-	initLCD();
-	motion_init();
-
 	/* Initialize intertask communication variables */
 	temperatures = malloc(sizeof(uint8_t)*9);
 	speedLeft = malloc(sizeof(float));
 	speedRight = malloc(sizeof(float));
 	distance = malloc(sizeof(float));
+	centerServoPosition = malloc(sizeof(uint16_t));
+
+	/* Initialize all modules before enabling interrupts. */
+	initMotionControl(centerServoPosition);
+	initTemperatureReader();
+	initLCD();
+	motion_init();
 
 	xTaskCreate(CyclicScheduler,  (const portCHAR *)"Cyclic Scheduler" , 256, NULL, 3,  NULL );
 	vTaskStartScheduler();
@@ -113,25 +117,24 @@ static void CyclicScheduler(void* gvParameters) {
 	while(1) {
 		if(table[taskNum] != NULL)
 			table[taskNum]();        					// Sets minor cycle time
-		vTaskDelayUntil( &xLastWakeTime,
-		( MINOR_CYCLE_TIME / portTICK_PERIOD_MS ));
+		vTaskDelayUntil( &xLastWakeTime, ( MINOR_CYCLE_TIME / portTICK_PERIOD_MS ));
 		taskNum = (taskNum+1) % NUM_MINOR_CYCLES;
 	}
 }
 
-static void ReadSpeed(float *speedLeft, float *speedRight, float* distance) {
+static void ReadSpeed() {
 	readSpeed(speedLeft, speedRight, distance);
 }
 
 /** Gets temperature readings from the TPA81 thermal array sensor.
  *  @param[temperatures] an array to hold the 9 temperatures to be read
  */
-static void ReadTemperatures() {
+static void ReadTemperatures(void) {
 	temperatureSweep(temperatures, centerServoPosition);
 	getTemperatureFromSensor(temperatures);
 }
 
-static void UpdateLED(uint8_t *temperatures)
+static void UpdateLED()
 {
 	//Calculate the average temperature of all readings
     int tempTotal = 0;
@@ -164,7 +167,7 @@ static void UpdateLED(uint8_t *temperatures)
     }
 }
 
-static void UpdateInstrumentCluster(){
+static void UpdateInstrumentCluster(void){
 		clearLCD();
 
 		/* 	Prints the current speed and distanced traveled in the current direction
@@ -192,7 +195,7 @@ static void UpdateInstrumentCluster(){
 }
 
 // deprecated
-static void DisplayTemperatures(uint8_t *temperatures) {
+static void DisplayTemperatures() {
 	clearLCD();
 
 	char topRow[16];
@@ -218,7 +221,7 @@ static void DisplayTemperatures(uint8_t *temperatures) {
 	writeLCDRowTwo(bottomRow);
 }
 
-static void Move(){
+static void Move(void){
 	if (distanceTraveled < 1) {
 		setMotionMode(FORWARD);
 	} else if (distanceTraveled < 2) {

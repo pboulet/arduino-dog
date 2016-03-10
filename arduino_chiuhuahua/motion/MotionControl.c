@@ -1,5 +1,6 @@
-#include "include/MotionControl.h"
-#include "include/motion.h"
+#include "MotionControl.h"
+
+#include "Motion.h"
 
 MotionMode motionMode;
 int rightWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;
@@ -7,7 +8,7 @@ int leftWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;
 int moving = 0;
 const uint8_t numRisingEdgesForAvg = 8;
 
-void InitMotionControl(uint16_t* servoPosition) {
+void initMotionControl(uint16_t* servoPosition) {
 	*servoPosition = INITIAL_PULSE_WIDTH_TICKS;
 	motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
 }
@@ -21,9 +22,9 @@ void temperatureSweep(uint16_t* servoPosition) {
 	    		//vTaskDelayUntil( &xLastWakeTime, ( 10 / portTICK_PERIOD_MS ) );
 	    	}
 
-	    	while(servoPosition > MIN_PULSE_WIDTH_TICKS){
-	    	    		servoPosition -= 10;
-	    	    		motion_servo_set_pulse_width(MOTION_SERVO_CENTER,servoPosition);
+	    	while(*servoPosition > MIN_PULSE_WIDTH_TICKS){
+	    	    		*servoPosition -= 10;
+	    	    		motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
 	    	    		//vTaskDelayUntil( &xLastWakeTime, ( 10 / portTICK_PERIOD_MS ) );
 			}
 	    }
@@ -32,14 +33,6 @@ void temperatureSweep(uint16_t* servoPosition) {
 void setMotionMode(MotionMode _motionMode)
 {
 	motionMode = _motionMode;
-
-	if (_motionMode == STOP)
-	{
-		motion_servo_stop(MOTION_WHEEL_LEFT);
-		motion_servo_stop(MOTION_WHEEL_RIGHT);
-		moving = 0;
-		return;
-	}
 
 	if (!moving)
 	{
@@ -66,6 +59,11 @@ void setMotionMode(MotionMode _motionMode)
 			leftWheelPulseWidth = MIN_PULSE_WIDTH_TICKS;
 			rightWheelPulseWidth = MIN_PULSE_WIDTH_TICKS;
 			break;
+		case STOP:
+			motion_servo_stop(MOTION_WHEEL_LEFT);
+			motion_servo_stop(MOTION_WHEEL_RIGHT);
+			moving = 0;
+			return;
 	}
 
 	motion_servo_set_pulse_width(MOTION_WHEEL_LEFT, leftWheelPulseWidth);
@@ -97,20 +95,12 @@ void updateRobotMotion(int currentSpeedLeftWheel, int currentSpeedRightWheel) {
 }
 
 void readSpeed(float *speedLeft, float *speedRight, float* distance) {
-	uint32_t 	ticCountLeft,
-				ticCountRight,
-				oneRotLeft,
-				oneRotRight,
-				observationLeftCtr,
-				observationRightCtr;
-
-	ticCountLeft = 0;
-	ticCountRight = 0;
-
-	oneRotLeft = 0;
-	oneRotRight = 0;
-
-	observationLeftCtr = 0;
+	uint32_t 	ticCountLeft = 0,
+				ticCountRight = 0,
+				oneRotLeft = 0,
+				oneRotRight = 0,
+				observationLeftCtr = 0,
+				observationRightCtr = 0;
 
 	while(observationLeftCtr < numRisingEdgesForAvg || observationRightCtr < numRisingEdgesForAvg) {
 		int leftReadSuccessful = motion_enc_read(MOTION_WHEEL_LEFT, &ticCountLeft);

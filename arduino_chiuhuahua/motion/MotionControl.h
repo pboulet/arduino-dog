@@ -1,6 +1,8 @@
 #ifndef INCLUDE_MOTION_CONTROL_H_
 #define INCLUDE_MOTION_CONTROL_H_
 
+#include <stdint.h>
+
 typedef enum {FORWARD, BACKWARD, SPINLEFT, SPINRIGHT, STOP} MotionMode;
 
 void initMotionControl(uint16_t*);

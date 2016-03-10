@@ -9,6 +9,8 @@
  *  information on the LCD
  */
 
+#include "Lcd.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -20,7 +22,6 @@
 
 #include "usartserial.h"
 
-#include "include\lcd.h"
 
 //! A public variable.
 /*!

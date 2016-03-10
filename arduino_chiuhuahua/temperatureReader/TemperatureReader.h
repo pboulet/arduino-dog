@@ -19,7 +19,7 @@ static const uint8_t MASTER_ADDR = 0xC0; 	// Master i2c address
 
 /** Initialize the module, putting TWI master to its initial standby state.
  */
-void InitTemperatureReader(void);
+void initTemperatureReader(void);
 
 /** Initialize the module, putting TWI master to its initial standby state.
  *
