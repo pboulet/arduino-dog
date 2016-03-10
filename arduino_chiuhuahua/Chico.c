@@ -43,6 +43,7 @@ static void Move(void);
 static void UpdateLED(void);
 static void DisplayTemperatures(void);
 static void UpdateInstrumentCluster(void);
+static MotionMode GetMotionMode(void);
 /*-----------------------------------------------------------*/
 
 /* Main program loop */
@@ -61,6 +62,7 @@ typedef void (*TASK)(void);
 #define MINOR_CYCLE_TIME 50
 
 TASK table[NUM_MINOR_CYCLES] = {
+		UpdateLED,
 		Move,
 		ReadTemperatures,
 		ReadSpeed,
@@ -136,35 +138,21 @@ static void ReadTemperatures(void) {
 
 static void UpdateLED()
 {
-	//Calculate the average temperature of all readings
-    int tempTotal = 0;
-    for (int i = 0; i < 8; ++i)
-    {
-    	tempTotal += temperatures[i];
-    }
-    int tempAverage = tempTotal / 8;
-
-	//If the temperature is above 40, exclusively turn on the red LED
-    if (tempAverage >= 40)
-    {
-    	blueLED(0);
-    	greenLED(0);
-    	redLED(1);
-    }
-	//If the temperature is below, exclusively turn on the blue LED
-    else if (tempAverage < 30)
-    {
-    	redLED(0);
-    	greenLED(0);
-    	blueLED(1);
-    }
-	//If the temperature is between 30 and 40, exclusively turn on the green LED
-    else
-    {
-    	redLED(0);
-    	blueLED(0);
-    	greenLED(1);
-    }
+	switch(GetMotionMode()){
+		case FORWARD:
+			lightLED(GREEN);
+			break;
+		case BACKWARD:
+			lightLED(RED);
+			break;
+		case SPINLEFT:
+		case SPINRIGHT:
+			lightLED(BLUE);
+			break;
+		case STOP:
+			lightLED(WHITE);
+			break;
+	}
 }
 
 static void UpdateInstrumentCluster(void){
@@ -222,16 +210,20 @@ static void DisplayTemperatures() {
 }
 
 static void Move(void){
+	setMotionMode(GetMotionMode());
+}
+
+static MotionMode GetMotionMode(void){
 	if (distanceTraveled < 1) {
-		setMotionMode(FORWARD);
+		return FORWARD;
 	} else if (distanceTraveled < 2) {
-		setMotionMode(BACKWARD);
+		return BACKWARD;
 	} else if ( distanceTraveled < 3) {	// need to figure out the distance for a full 360
-		setMotionMode(SPINLEFT);
+		return SPINLEFT;
 	} else if ( distanceTraveled < 4) {	// need to figure out the distance for a full 360
-		setMotionMode(SPINRIGHT);
+		return SPINRIGHT;
 	} else {							// demo choregraphy is done
-		setMotionMode(STOP);
+		return STOP;
 	}
 }
 

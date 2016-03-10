@@ -11,6 +11,4 @@ typedef enum {RED, GREEN, BLUE, WHITE, OFF} LEDState;
  */
 void lightLED(LEDState);
 
-
-
 #endif
