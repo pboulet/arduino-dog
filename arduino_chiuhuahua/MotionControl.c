@@ -7,6 +7,28 @@ int leftWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;
 int moving = 0;
 const uint8_t numRisingEdgesForAvg = 8;
 
+void InitMotionControl(uint16_t* servoPosition) {
+	*servoPosition = INITIAL_PULSE_WIDTH_TICKS;
+	motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
+}
+
+void temperatureSweep(uint16_t* servoPosition) {
+	    while(1)
+	    {
+	    	while(*servoPosition < MAX_PULSE_WIDTH_TICKS){
+	    		*servoPosition += 10;
+	    		motion_servo_set_pulse_width(MOTION_SERVO_CENTER,*servoPosition);
+	    		//vTaskDelayUntil( &xLastWakeTime, ( 10 / portTICK_PERIOD_MS ) );
+	    	}
+
+	    	while(servoPosition > MIN_PULSE_WIDTH_TICKS){
+	    	    		servoPosition -= 10;
+	    	    		motion_servo_set_pulse_width(MOTION_SERVO_CENTER,servoPosition);
+	    	    		//vTaskDelayUntil( &xLastWakeTime, ( 10 / portTICK_PERIOD_MS ) );
+			}
+	    }
+}
+
 void setMotionMode(MotionMode _motionMode)
 {
 	motionMode = _motionMode;
@@ -32,7 +54,7 @@ void setMotionMode(MotionMode _motionMode)
 			leftWheelPulseWidth = MAX_PULSE_WIDTH_TICKS;
 			rightWheelPulseWidth = MIN_PULSE_WIDTH_TICKS;
 			break;
-		case BACKWARDS:
+		case BACKWARD:
 			leftWheelPulseWidth = MIN_PULSE_WIDTH_TICKS;
 			rightWheelPulseWidth = MAX_PULSE_WIDTH_TICKS;
 			break;
@@ -75,14 +97,12 @@ void updateRobotMotion(int currentSpeedLeftWheel, int currentSpeedRightWheel) {
 }
 
 void readSpeed(float *speedLeft, float *speedRight, float* distance) {
-	uint32_t ticCountLeft;
-	uint32_t ticCountRight;
-
-	uint32_t oneRotLeft;
-	uint32_t oneRotRight;
-
-	uint32_t observationLeftCtr;
-	uint32_t observationRightCtr;
+	uint32_t 	ticCountLeft,
+				ticCountRight,
+				oneRotLeft,
+				oneRotRight,
+				observationLeftCtr,
+				observationRightCtr;
 
 	ticCountLeft = 0;
 	ticCountRight = 0;
@@ -109,5 +129,5 @@ void readSpeed(float *speedLeft, float *speedRight, float* distance) {
 
 	*speedLeft = (0.1728F/(float)numRisingEdgesForAvg) / (((float)oneRotLeft / (float)numRisingEdgesForAvg) * 0.0000005F);
 	*speedRight = (0.1728F/(float)numRisingEdgesForAvg) / (((float)oneRotLeft /(float)numRisingEdgesForAvg) * 0.0000005F);
-	*distance += 0.1728/numRisingEdgesForAvg;
+	*distance += 0.1728F/numRisingEdgesForAvg;
 }

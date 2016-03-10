@@ -32,7 +32,7 @@
 
 /*-----------------------------------------------------------*/
 
-static void TaskScheduler(void*);
+static void CyclicScheduler(void*);
 static void ReadTemperatures(uint8_t*);
 static void ReadSpeed(float*, float*, float*);
 static void Move(MotionMode);
@@ -47,6 +47,26 @@ static void UpdateInstrumentCluster(float*, float*, uint8_t*, float*);
 
 /* Main program loop */
 int usartfd;
+float distanceTraveled;
+uint8_t *temperatures;
+float *speedLeft;
+float *speedRight;
+float *distance;
+
+typedef void (*TASK)(void);
+
+#define NUM_MINOR_CYCLES
+#define MINOR_CYCLE_TIME 50
+
+TASK* table[NUM_MINOR_CYCLES] = {
+		Move,
+		ReadTemperatures,
+		ReadSpeed,
+		UpdateInstrumentCluster,
+		UpdateLED
+		ReadSpeed,
+		UpdateInstrumentCluster
+};
 
 /** Main loop.  Creates tasks, set their order and start the FreeRTOS scheduler.
  * @return the status of the program when it ends
@@ -62,16 +82,17 @@ int main(void)
 	InitTemperatureReader();
 	initLCD();
 	motion_init();
-	//InitLED();
 
-	xTaskCreate(TaskScheduler,  (const portCHAR *)"Scheduler" , 256, NULL, 3,  NULL );
+	/* Initialize intertask communication variables */
+	temperatures = malloc(sizeof(uint8_t)*9);
+	speedLeft = malloc(sizeof(float));
+	speedRight = malloc(sizeof(float));
+	distance = malloc(sizeof(float));
 
-	usart_printf_P(PSTR("\r\n\nFree Heap Size: %u\r\n"),xPortGetFreeHeapSize() ); // needs heap_1 or heap_2 for this function to succeed.
-
+	xTaskCreate(CyclicScheduler,  (const portCHAR *)"Cyclic Scheduler" , 256, NULL, 3,  NULL );
 	vTaskStartScheduler();
 
 	usart_print_P(PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
-
 }
 
 /** Reads the temperatures from the robot's thermal array
@@ -79,7 +100,7 @@ int main(void)
  * front of the robot on the LED and all temperatures readings on
  * the LCD.
  */
-static void TaskScheduler(void* gvParameters) {
+static void CyclicScheduler(void* gvParameters) {
     TickType_t xLastWakeTime;							// keeps track of timing
 
 	/* The xLastWakeTime variable needs to be initialised with the current tick
@@ -88,30 +109,14 @@ static void TaskScheduler(void* gvParameters) {
 	API function. */
 	xLastWakeTime = xTaskGetTickCount();
 
-	uint8_t *temperatures = malloc(sizeof(uint8_t)*9);
-	float *speedLeft = malloc(sizeof(float));
-	float *speedRight = malloc(sizeof(float));
-	float * distance = malloc(sizeof(float));
-
-		for(int i = 0; i < 1000; i++){
-			Move(FORWARD);
-			ReadSpeed(speedLeft, speedRight, distance);
-			UpdateInstrumentCluster(speedLeft, speedRight, temperatures, distance);
-		}
-
-//		while(1){
-//			Move(STOP);
-//			ReadSpeed(speedLeft, speedRight, distance);
-//			ReadSpeed(speedLeft, speedRight, distance);
-//			UpdateInstrumentCluster(speedLeft, speedRight, temperatures, distance);
-//		}
-
-
-	//ReadTemperatures(temperatures);
-	//UpdateLED(temperatures);
-    //DisplayTemperatures(temperatures);
-	motion_servo_start(MOTION_WHEEL_LEFT);
-    motion_servo_start(MOTION_WHEEL_RIGHT);
+	int taskNum = 0; // to cycle through schedule
+	while(1) {
+		if(table[taskNum] != NULL)
+			table[taskNum]();        					// Sets minor cycle time
+		vTaskDelayUntil( &xLastWakeTime,
+		( MINOR_CYCLE_TIME / portTICK_PERIOD_MS ));
+		taskNum = (taskNum+1) % NUM_MINOR_CYCLES;
+	}
 }
 
 static void ReadSpeed(float *speedLeft, float *speedRight, float* distance) {
@@ -121,7 +126,8 @@ static void ReadSpeed(float *speedLeft, float *speedRight, float* distance) {
 /** Gets temperature readings from the TPA81 thermal array sensor.
  *  @param[temperatures] an array to hold the 9 temperatures to be read
  */
-static void ReadTemperatures(uint8_t *temperatures) {
+static void ReadTemperatures() {
+	temperatureSweep(temperatures, centerServoPosition);
 	getTemperatureFromSensor(temperatures);
 }
 
@@ -158,8 +164,11 @@ static void UpdateLED(uint8_t *temperatures)
     }
 }
 
-static void UpdateInstrumentCluster(float* speedLeft, float* speedRight, uint8_t *temperatures, float* distance){
-	clearLCD();
+static void UpdateInstrumentCluster(){
+		clearLCD();
+
+		/* 	Prints the current speed and distanced traveled in the current direction
+			on the first line of the LCD screen. */
 		float speed = (*speedLeft + *speedRight)/ 2.0F;
 
 		char topRow[16];
@@ -182,6 +191,7 @@ static void UpdateInstrumentCluster(float* speedLeft, float* speedRight, uint8_t
 		writeLCDRowTwo(bottomRow);*/
 }
 
+// deprecated
 static void DisplayTemperatures(uint8_t *temperatures) {
 	clearLCD();
 
@@ -208,9 +218,18 @@ static void DisplayTemperatures(uint8_t *temperatures) {
 	writeLCDRowTwo(bottomRow);
 }
 
-static void Move(MotionMode mode){
-	setMotionMode(mode);
-	//set LED color
+static void Move(){
+	if (distanceTraveled < 1) {
+		setMotionMode(FORWARD);
+	} else if (distanceTraveled < 2) {
+		setMotionMode(BACKWARD);
+	} else if ( distanceTraveled < 3) {	// need to figure out the distance for a full 360
+		setMotionMode(SPINLEFT);
+	} else if ( distanceTraveled < 4) {	// need to figure out the distance for a full 360
+		setMotionMode(SPINRIGHT);
+	} else {							// demo choregraphy is done
+		setMotionMode(STOP);
+	}
 }
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask,
