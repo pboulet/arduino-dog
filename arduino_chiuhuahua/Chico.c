@@ -93,16 +93,16 @@ uint16_t *centerServoPosition;
 
 typedef void (*TASK)(void);
 
-#define NUM_MINOR_CYCLES 5
-#define MINOR_CYCLE_TIME 20
+#define NUM_MINOR_CYCLES 16
+#define MINOR_CYCLE_TIME 50
 
 /* Cyclic scheduler task table. */
 TASK table[NUM_MINOR_CYCLES] = {
 		ReadTemperatures,
 		Move,
 		UpdateLED,
-		ReadSpeed,
-		UpdateInstrumentCluster
+		UpdateInstrumentCluster,
+		ReadSpeed
 };
 
 /** Main loop.  Creates tasks, set their order and start the FreeRTOS scheduler.
@@ -163,13 +163,22 @@ static void CyclicScheduler(void* gvParameters) {
 }
 
 static void ReadSpeed() {
-	readSpeed(speedLeft, speedRight, distance);
-	//updateRobotMotion(*speedLeft, *speedRight);
+	usart_print_P(PSTR("Reading speed \r\n"));
+	if ( GetMotionMode() != STOP){
+		readSpeed(speedLeft, speedRight, distance);
+		updateRobotMotion(*speedLeft, *speedRight);
+	} else {
+		*speedLeft = 0;
+		*speedRight = 0;
+	}
+	usart_print_P(PSTR("Done reading speed \r\n"));
 }
 
 static void ReadTemperatures(void) {
+	usart_print_P(PSTR("Reading temperatures \r\n"));
 	temperatureSweep(GetMotionMode(), centerServoPosition);
 	getTemperatureFromSensor(temperatures);
+	usart_print_P(PSTR("Done reading temperatures \r\n"));
 }
 
 static void UpdateLED()
@@ -193,7 +202,7 @@ static void UpdateLED()
 
 static void UpdateInstrumentCluster(void){
 		clearLCD();
-
+		usart_print_P(PSTR("Updating instrument cluster \r\n"));
 		/* Average speed of the two wheels. */
 		double speed = (*speedLeft + *speedRight)/ 2.0;
 
@@ -219,10 +228,13 @@ static void UpdateInstrumentCluster(void){
 		 */
 		sprintf(bottomRow, "temp %.2f %.2f", tempAvgLeft, tempAvgRight);
 		writeLCDRowTwo(bottomRow);
+		usart_print_P(PSTR("Done updating the instrument cluster \r\n"));
 }
 
 static void Move(void){
+	usart_print_P(PSTR("Updating the speed \r\n"));
 	setMotionMode(GetMotionMode());
+	usart_print_P(PSTR("Done updating the speed \r\n"));
 }
 
 /**

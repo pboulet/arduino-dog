@@ -8,6 +8,14 @@ int leftWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;
 int moving = 0;
 const uint8_t numRisingEdgesForAvg = 32;
 
+uint32_t oneRotLeft = 0;
+uint32_t oneRotRight = 0;
+uint32_t observationLeftCtr = 0;
+uint32_t observationRightCtr = 0;
+
+uint32_t leftRotationTicks[32] = {0};
+uint32_t rightRotationTicks[32] = {0};
+
 uint16_t clockwise = 1;
 
 void initMotionControl(uint16_t* servoPosition) {
@@ -97,28 +105,45 @@ void updateRobotMotion(double currentSpeedLeftWheel, double currentSpeedRightWhe
 
 void readSpeed(double *speedLeft, double *speedRight, double* distance) {
 	uint32_t 	ticCountLeft = 0,
-				ticCountRight = 0,
-				oneRotLeft = 0,
-				oneRotRight = 0,
-				observationLeftCtr = 0,
-				observationRightCtr = 0;
+				ticCountRight = 0;
 
-	while(observationLeftCtr < numRisingEdgesForAvg || observationRightCtr < numRisingEdgesForAvg) {
-		int leftReadSuccessful = motion_enc_read(MOTION_WHEEL_LEFT, &ticCountLeft);
-		int rightReadSuccessful = motion_enc_read(MOTION_WHEEL_RIGHT, &ticCountRight);
 
-		if(leftReadSuccessful > 0 && observationLeftCtr < numRisingEdgesForAvg){
-			oneRotLeft += ticCountLeft;
-			observationLeftCtr += 1;
-		}
+	int leftReadSuccessful = 0;
+	while(leftReadSuccessful != 1)
+		leftReadSuccessful = motion_enc_read(MOTION_WHEEL_LEFT, &ticCountLeft);
 
-		if(rightReadSuccessful > 0 && observationRightCtr < numRisingEdgesForAvg){
-			oneRotRight += ticCountRight;
-			observationRightCtr += 1;
+	int rightReadSuccessful = 0;
+	while(rightReadSuccessful != 1)
+		rightReadSuccessful = motion_enc_read(MOTION_WHEEL_RIGHT, &ticCountRight);
+
+
+	leftRotationTicks[observationLeftCtr] = ticCountLeft;
+	observationLeftCtr = (observationLeftCtr + 1 ) % (numRisingEdgesForAvg - 1);
+
+	rightRotationTicks[observationRightCtr] = ticCountRight;
+	observationRightCtr = (observationRightCtr + 1) % (numRisingEdgesForAvg - 1);
+
+
+	uint32_t rotationTicksCountLeft = 0;
+	uint32_t rotationTicksCountRight = 0;
+	uint8_t rotationLeftTicksCountForAvg = 0;
+	uint8_t rotationRightTicksCountForAvg = 0;
+
+	for(int i = 0; i < numRisingEdgesForAvg; i++){
+		if (leftRotationTicks[i] != 0) {
+			rotationTicksCountLeft += leftRotationTicks[i];
+			rotationLeftTicksCountForAvg++;
 		}
 	}
 
-	*speedLeft = (0.1728/(double)numRisingEdgesForAvg) / (((double)oneRotLeft / (double)numRisingEdgesForAvg) * 0.0000005);
-	*speedRight = (0.1728/(double)numRisingEdgesForAvg) / (((double)oneRotLeft /(double)numRisingEdgesForAvg) * 0.0000005);
-	*distance += 0.1728;
+	for(int i = 0; i < numRisingEdgesForAvg; i++){
+		if (rightRotationTicks[i] != 0) {
+			rotationTicksCountRight += rightRotationTicks[i];
+			rotationRightTicksCountForAvg++;
+		}
+	}
+
+	*speedLeft = (0.1728/(double)rotationLeftTicksCountForAvg) / (((double)rotationTicksCountLeft / (double)rotationLeftTicksCountForAvg) * 0.0000005);
+	*speedRight = (0.1728/(double)rotationRightTicksCountForAvg) / (((double)rotationTicksCountRight /(double)rotationRightTicksCountForAvg) * 0.0000005);
+	*distance += 0.1728/32.0;
 }
