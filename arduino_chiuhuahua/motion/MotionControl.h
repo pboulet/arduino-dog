@@ -16,6 +16,11 @@ void updateRobotMotion(double, double);
 
 void readSpeed(double*, double*, double*);
 
+/**
+ * Function: temperatureSweep
+ * Returns: None
+ * Desc: recieves the current servo position, and based on its current position sweeps left or right
+ */
 void temperatureSweep(MotionMode, uint16_t*);
 
 #endif
