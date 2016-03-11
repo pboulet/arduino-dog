@@ -28,12 +28,12 @@ void temperatureSweep(MotionMode mode, uint16_t* servoPosition) {
 		if (mode == STOP){
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER, INITIAL_PULSE_WIDTH_TICKS);
 		} else if(clockwise == 1){
-			*servoPosition += 200;
+			*servoPosition += 250;
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER,*servoPosition);
 			if ( *servoPosition >= MAX_PULSE_WIDTH_TICKS)
 				clockwise = 0;
 		} else {
-			*servoPosition -= 200;
+			*servoPosition -= 250;
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
 			if ( *servoPosition <= MIN_PULSE_WIDTH_TICKS)
 				clockwise = 1;
@@ -145,5 +145,5 @@ void readSpeed(double *speedLeft, double *speedRight, double* distance) {
 
 	*speedLeft = (0.1728/(double)rotationLeftTicksCountForAvg) / (((double)rotationTicksCountLeft / (double)rotationLeftTicksCountForAvg) * 0.0000005);
 	*speedRight = (0.1728/(double)rotationRightTicksCountForAvg) / (((double)rotationTicksCountRight /(double)rotationRightTicksCountForAvg) * 0.0000005);
-	*distance += (*speedLeft + *speedRight)/2.0 * 0.2;
+	*distance += (*speedLeft + *speedRight)/2.0 * 0.100;
 }
