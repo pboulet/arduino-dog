@@ -168,7 +168,7 @@ static void ReadSpeed() {
 }
 
 static void ReadTemperatures(void) {
-	temperatureSweep(centerServoPosition);
+	temperatureSweep(GetMotionMode(), centerServoPosition);
 	getTemperatureFromSensor(temperatures);
 }
 
@@ -203,21 +203,21 @@ static void UpdateInstrumentCluster(void){
 		/* Average of the first four temperature pixels from the right. */
 		double tempAvgRight = (temperatures[4] + temperatures[5] + temperatures[6] + temperatures[7])/4.0;
 
-		char topRow[16];
-		char bottomRow[16];
+		char topRow[16] = "";
+		char bottomRow[16] = "";
 
 		/*
 		 * Prints the average speed of the two wheels as well as the
 		 * total distance traveled on the first line of the LCD screen.
 		 */
-		sprintf(topRow, "%.2f %.2f", speed, *distance);
+		sprintf(topRow, "%.2f m/s %.2f m", speed, *distance);
 		writeLCDRowOne(topRow);
 
 		/*
 		 * Prints the average temperature for the first four pixel sensors from the left
 		 * as well as the average temperature for the first four pixel sensors from the right.
 		 */
-		sprintf(bottomRow, "%.2f %.2f", tempAvgLeft, tempAvgRight);
+		sprintf(bottomRow, "temp %.2f %.2f", tempAvgLeft, tempAvgRight);
 		writeLCDRowTwo(bottomRow);
 }
 

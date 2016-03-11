@@ -16,7 +16,7 @@ void updateRobotMotion(double, double);
 
 void readSpeed(double*, double*, double*);
 
-void temperatureSweep(uint16_t*);
+void temperatureSweep(MotionMode, uint16_t*);
 
 #endif
 

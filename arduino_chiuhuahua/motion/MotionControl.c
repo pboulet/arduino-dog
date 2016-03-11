@@ -16,8 +16,10 @@ void initMotionControl(uint16_t* servoPosition) {
 	motion_servo_start(MOTION_SERVO_CENTER);
 }
 
-void temperatureSweep(uint16_t* servoPosition) {
-		if(clockwise == 1){
+void temperatureSweep(MotionMode mode, uint16_t* servoPosition) {
+		if (mode == STOP){
+			motion_servo_set_pulse_width(MOTION_SERVO_CENTER, INITIAL_PULSE_WIDTH_TICKS);
+		} else if(clockwise == 1){
 			*servoPosition += 100;
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER,*servoPosition);
 			if ( *servoPosition >= MAX_PULSE_WIDTH_TICKS)
@@ -90,7 +92,6 @@ void updateRobotMotion(double currentSpeedLeftWheel, double currentSpeedRightWhe
 		rightWheelPulseWidth = rightWheelPulseWidth/rightWheelDiff;
 	}
 
-	//motion_servo_set_pulse_width(MOTION_WHEEL_LEFT, 2500);
 	motion_servo_set_pulse_width(MOTION_WHEEL_RIGHT, rightWheelPulseWidth);
 }
 
