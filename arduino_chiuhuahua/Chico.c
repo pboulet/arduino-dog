@@ -93,16 +93,23 @@ uint16_t *centerServoPosition;
 
 typedef void (*TASK)(void);
 
-#define NUM_MINOR_CYCLES 16
+#define NUM_MINOR_CYCLES 12
 #define MINOR_CYCLE_TIME 50
 
 /* Cyclic scheduler task table. */
 TASK table[NUM_MINOR_CYCLES] = {
-		ReadTemperatures,
 		Move,
 		UpdateLED,
+		ReadSpeed,
+		ReadTemperatures,
+		ReadSpeed,
 		UpdateInstrumentCluster,
-		ReadSpeed
+		ReadSpeed,
+		ReadTemperatures,
+		ReadSpeed,
+		ReadTemperatures,
+		ReadSpeed,
+		UpdateInstrumentCluster
 };
 
 /** Main loop.  Creates tasks, set their order and start the FreeRTOS scheduler.
@@ -178,6 +185,7 @@ static void ReadTemperatures(void) {
 	usart_print_P(PSTR("Reading temperatures \r\n"));
 	temperatureSweep(GetMotionMode(), centerServoPosition);
 	getTemperatureFromSensor(temperatures);
+
 	usart_print_P(PSTR("Done reading temperatures \r\n"));
 }
 
@@ -252,9 +260,9 @@ static MotionMode GetMotionMode(void){
 		return FORWARD;
 	} else if ( *distance < 1.0) {
 		return BACKWARD;
-	} else if ( *distance < 1.5) {	// TODO: need to figure out the distance for a full 360
+	} else if ( *distance < 1.45) {	// TODO: need to figure out the distance for a full 360
 		return SPINLEFT;
-	} else if ( *distance < 2.0) {	// TODO: need to figure out the distance for a full 360
+	} else if ( *distance < 1.9) {	// TODO: need to figure out the distance for a full 360
 		return SPINRIGHT;
 	} else {						// demo choregraphy is done
 		return STOP;

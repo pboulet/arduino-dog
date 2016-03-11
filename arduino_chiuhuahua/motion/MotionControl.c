@@ -13,8 +13,8 @@ uint32_t oneRotRight = 0;
 uint32_t observationLeftCtr = 0;
 uint32_t observationRightCtr = 0;
 
-uint32_t leftRotationTicks[32] = {0};
-uint32_t rightRotationTicks[32] = {0};
+uint32_t leftRotationTicks[32] = {[0 ... 31] = 45000};
+uint32_t rightRotationTicks[32] = {[0 ... 31] = 45000};
 
 uint16_t clockwise = 1;
 
@@ -28,12 +28,12 @@ void temperatureSweep(MotionMode mode, uint16_t* servoPosition) {
 		if (mode == STOP){
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER, INITIAL_PULSE_WIDTH_TICKS);
 		} else if(clockwise == 1){
-			*servoPosition += 100;
+			*servoPosition += 200;
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER,*servoPosition);
 			if ( *servoPosition >= MAX_PULSE_WIDTH_TICKS)
 				clockwise = 0;
 		} else {
-			*servoPosition -= 100;
+			*servoPosition -= 200;
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
 			if ( *servoPosition <= MIN_PULSE_WIDTH_TICKS)
 				clockwise = 1;
@@ -44,7 +44,7 @@ void setMotionMode(MotionMode _motionMode)
 {
 	motionMode = _motionMode;
 
-	if (!moving)
+	if (!moving && motionMode != STOP)
 	{
 		motion_servo_start(MOTION_WHEEL_LEFT);
 		motion_servo_start(MOTION_WHEEL_RIGHT);
@@ -145,5 +145,5 @@ void readSpeed(double *speedLeft, double *speedRight, double* distance) {
 
 	*speedLeft = (0.1728/(double)rotationLeftTicksCountForAvg) / (((double)rotationTicksCountLeft / (double)rotationLeftTicksCountForAvg) * 0.0000005);
 	*speedRight = (0.1728/(double)rotationRightTicksCountForAvg) / (((double)rotationTicksCountRight /(double)rotationRightTicksCountForAvg) * 0.0000005);
-	*distance += 0.1728/32.0;
+	*distance += (*speedLeft + *speedRight)/2.0 * 0.2;
 }
