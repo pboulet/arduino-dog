@@ -28,7 +28,12 @@
 /******************************************************************************************************************/
 
 /* ------- Constants ------	*/
-static const uint8_t MASTER_ADDR = 0xC0; 	// Master i2c address
+
+/*!
+ * Master i2c address
+ */
+
+static const uint8_t MASTER_ADDR = 0xC0;
 #define I2C_WRITE_ADDR  0xD0; 				// TPA81 i2c address - master write
 #define I2C_READ_ADDR  	0xD1; 				// TPA81 i2c address - master read
 #define BASE_REGISTER 	0x01 				// Ambient temperature register
@@ -39,7 +44,7 @@ static const uint8_t MASTER_ADDR = 0xC0; 	// Master i2c address
  *
  *\details  Initialize the module, putting TWI master to its initial standby state.
  *
- * @returns
+ * @returns none
  */
 void initTemperatureReader(void);
 
@@ -52,7 +57,7 @@ void initTemperatureReader(void);
  * @param temperatures An array of 9 temperatures. The first one being the ambient
  * 			temperature followed by 8 pixel temperatures
  * 			read from the TPA81 thermal array sensor.
- * @returns
+ * @returns none
  */
 void getTemperatureFromSensor(uint8_t*);
 

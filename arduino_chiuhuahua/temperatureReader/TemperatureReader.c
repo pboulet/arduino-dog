@@ -27,7 +27,7 @@
  *
  *\details  Initialize the module, putting TWI master to its initial standby state.
  *
- * @returns
+ * @returns none
  */
 void initTemperatureReader(void){
 	I2C_Master_Initialise(MASTER_ADDR);
@@ -42,7 +42,7 @@ void initTemperatureReader(void){
  * @param temperatures An array of 9 temperatures. The first one being the ambient
  * 			temperature followed by 8 pixel temperatures
  * 			read from the TPA81 thermal array sensor.
- * @returns
+ * @returns none
  */
 void getTemperatureFromSensor(uint8_t *temperatures){
 

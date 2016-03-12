@@ -1,11 +1,45 @@
+/*
+ * Led.c
+ * Chico The Robot
+ */
+
+/******************************************************************************************************************/
+
+/*!	\file Led.c
+ *
+ * \author Alexander Teske & Adnane Gasmi, Patrice Boulet
+ *
+ * \date March 13th, 2016
+ *
+ * \brief Module that provides a wrapper around the LED hardware of the robot.
+ *
+ */
+
+/******************************************************************************************************************/
+
+/***** Include *******/
+
 #include "avr/io.h"
 #include "Led.h"
 
+/******************************************************************************************************************/
 
-/**
- * Function: lightLED
- * Returns: None
- * Desc: Turn on the proper LED depending on passed parameter
+/***************************************  Function Declarations  **************************************************/
+
+void redLED(int);
+
+void greenLED(int);
+
+void blueLED(int);
+
+/******************************************************************************************************************/
+
+/********************************************* Entry Points  ******************************************************/
+
+/*!\brief Turn on the proper LED depending on passed parameter
+ *
+ * @param on enumeration value that dictates the LED color to show
+ * @returns none
  */
 void lightLED(LEDState LED){
     switch(LED)
@@ -39,10 +73,14 @@ void lightLED(LEDState LED){
 }
 
 
-/**
- * Function: redLED
- * Returns: None
- * Desc: Turn on or off the red LED depending on passed parameter
+/******************************************************************************************************************/
+
+/******************************************* Local functions  *****************************************************/
+
+/*!\brief Turn on or off the red LED depending on passed parameter
+ *
+ * @param on Set to 1 when we want to turn this LED on and to 0 otherwise.
+ * @returns none
  */
 void redLED(int on){
     if(on == 1){
@@ -55,10 +93,11 @@ void redLED(int on){
     }
 }
 
-/**
- * Function: greenLED
- * Returns: None
- * Desc: Turn on or off the green LED depending on passed parameter
+
+/*!\brief Turn on or off the green LED depending on passed parameter
+ *
+ * @param on Set to 1 when we want to turn this LED on and to 0 otherwise.
+ * @returns none
  */
 void greenLED(int on) {
     if(on == 1){
@@ -71,11 +110,10 @@ void greenLED(int on) {
     }
 }
 
-
-/**
- * Function: blueLED
- * Returns: None
- * Desc: Turn on or off the blue LED depending on passed parameter
+/*!\brief Turn on or off the blue LED depending on passed parameter
+ *
+ * @param on Set to 1 when we want to turn this LED on and to 0 otherwise.
+ * @returns none
  */
 void blueLED(int on) {
     if(on == 1){
@@ -87,3 +125,5 @@ void blueLED(int on) {
         }
     }
 }
+
+/******************************************************************************************************************/

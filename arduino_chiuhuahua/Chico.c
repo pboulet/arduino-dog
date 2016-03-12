@@ -76,20 +76,71 @@ static MotionMode GetMotionMode(void);
 
 int usartfd;
 
-double distanceTraveled;				/* Total distance traveled by the robot. */
-uint8_t *temperatures;					/* Holds the most current temperature reading from the thermal array sensor. */
-double *speedLeft;						/* Holds the most current speed reading from the encoder of the left wheel. */
-double *speedRight;						/* Holds the most current speed reading from the encoder of the right wheel. */
-double *distance;						/* Holds the most current total distance traveled by the robot. */
-uint16_t *centerServoPosition;			/* Holds the most current position of the thermal array servo motor. */
+/*************************************  Type definitions & Macros  ************************************************/
 
-typedef void (*TASK)(void);				/* Task function pointer definition. */
-#define NUM_MINOR_CYCLES 8				/* Number of minor cycles in the cyclic scheduler's schedule. */
-#define MINOR_CYCLE_TIME 50				/* Duration of minor cycles in the cyclic scheduler, in milliseconds. */
+/*!
+ *  \typedef typedef void (*TASK)(void)
+ *  \brief Task function pointer definition.
+ */
+typedef void (*TASK)(void);
+
+
+/*!
+ *  \def typedef #define NUM_MINOR_CYCLES 8
+ *  \brief Number of minor cycles in the cyclic scheduler's schedule.
+ */
+#define NUM_MINOR_CYCLES 8
+
+/*!
+ *  \def typedef #define #define MINOR_CYCLE_TIME 50
+ *  \brief Duration of minor cycles in the cyclic scheduler, in milliseconds.
+ */
+#define MINOR_CYCLE_TIME 50
+
 
 /******************************************************************************************************************/
 
-/* Cyclic scheduler task table. */
+/******************************************* Global variables *****************************************************/
+/*!
+ *  \var double distanceTraveled
+ *  \brief Total distance traveled by the robot.
+ */
+double distanceTraveled;
+
+/*!
+ *  \var uint8_t *temperatures
+ *  \brief Holds the most current temperature reading from the thermal array sensor.
+ */
+uint8_t *temperatures;
+
+/*!
+ *  \var double *speedLeft
+ *  \brief Holds the most current speed reading from the encoder of the left wheel.
+ */
+double *speedLeft;
+
+/*!
+ *  \var double *speedRight
+ *  \brief Holds the most current speed reading from the encoder of the right wheel.
+ */
+double *speedRight;						/* Holds the most current speed reading from the encoder of the right wheel. */
+
+/*!
+ *  \var double *distance
+ *  \brief Holds the most current total distance traveled by the robot.
+ */
+double *distance;
+
+/*!
+ *  \var uint16_t *centerServoPosition
+ *  \brief Holds the most current position of the thermal array servo motor.
+ */
+uint16_t *centerServoPosition;
+
+/*!
+ *  \var TASK table[NUM_MINOR_CYCLES]
+ *  \brief Cyclic scheduler task table.
+ */
 TASK table[NUM_MINOR_CYCLES] = {
 		Move,
 		ReadSpeed,
@@ -147,14 +198,15 @@ int main(void)
 	usart_print_P(PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
 }
 
-/*!\brief Cyclic Scheduler task (FreeRTOS task).
+/*!\fn CyclicScheduler(void* gvParameters)
+ *\brief Cyclic Scheduler task (FreeRTOS task).
  *
  *\details  Runs tasks defined in the static cyclic
  * schedule sequentially undefinitely following the minor cycle duration
  * defined.
  *
  * @param gvParameters task parameters (not used in the context of this system right now)
- * @returns
+ * @returns none
  */
 static void CyclicScheduler(void* gvParameters) {
     TickType_t xLastWakeTime;							// keeps track of timing
@@ -176,7 +228,8 @@ static void CyclicScheduler(void* gvParameters) {
 	}
 }
 
-/*!\brief Reads speed of wheels, the distance traveled,
+/*! \fn static void ReadSpeed()
+ * \brief Reads speed of wheels, the distance traveled,
  * 	and triggers execution of the controller.
  *
  *\details  If the robot is not stopped, reads the speed of both wheels and
@@ -185,7 +238,7 @@ static void CyclicScheduler(void* gvParameters) {
  * 	then it only sets the speed of both wheels to zero.
  *
  * @param gvParameters task parameters (not used in the context of this system right now)
- * @returns
+ * @returns none
  */
 static void ReadSpeed() {
 	if ( GetMotionMode() != STOP){
@@ -207,7 +260,7 @@ static void ReadSpeed() {
  * 	then it only sets the speed of both wheels to zero.
  *
  * @param gvParameters task parameters (not used in the context of this system right now)
- * @returns
+ * @returns none
  */
 static void ReadTemperatures(void) {
 	temperatureSweep(GetMotionMode(), centerServoPosition);
@@ -221,7 +274,7 @@ static void ReadTemperatures(void) {
  * its spinning it sets its color to blue and finally if its stopped
  * the color is set to white.
  *
- * @returns
+ * @returns none
  */
 static void UpdateLED()
 {
@@ -252,7 +305,7 @@ static void UpdateLED()
  * line of the LCD display as well as the ambient temperature and the
  * average pixels temperature readings on the second row.
  *
- * @returns
+ * @returns none
  */
 static void UpdateInstrumentCluster(void){
 		clearLCD();
@@ -290,7 +343,7 @@ static void UpdateInstrumentCluster(void){
  * motion control module to update the current motion
  * mode status of the system.
  *
- * @returns
+ * @returns none
  */
 static void Move(void){
 	setMotionMode(GetMotionMode());

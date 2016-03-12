@@ -1,5 +1,4 @@
-/*!
- * \file lcd.c
+/*!\file lcd.c
  * \brief Module to handle LCD connection
  * \author Justin Langis
  * \author Nick Dubus
@@ -23,9 +22,8 @@
 #include "usartserial.h"
 
 
-//! A public variable.
-/*!
-  /a usartlcd will hold the usart id after initialization.
+
+/*! usartlcd will hold the usart id after initialization.
 */
 int usartlcd;
 

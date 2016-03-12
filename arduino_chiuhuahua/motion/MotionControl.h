@@ -46,7 +46,7 @@ typedef enum {FORWARD, BACKWARD, SPINLEFT, SPINRIGHT, STOP} MotionMode;
  *
  * @param mode Current motion mode of the robot.
  * @param servoPosition Current position of the thermal array sensor in ticks.
- * @returns
+ * @returns none
  */
 void initMotionControl(uint16_t*);
 
@@ -59,7 +59,7 @@ void initMotionControl(uint16_t*);
  *			- Sets the pulse width for the servo motors of both wheels of the robot.
  *
  * @param _motionMode Current motion mode to be set.
- * @returns
+ * @returns none
  */
 void setMotionMode(MotionMode);
 
@@ -72,7 +72,7 @@ void setMotionMode(MotionMode);
  *
  * @param currentSpeedLeftWheel Current speed of the left wheel. (m/s)
  * @param currentSpeedRightWheel Current speed of the right wheel
- * @returns
+ * @returns none
  */
 void updateRobotMotion(double, double);
 
@@ -89,7 +89,7 @@ void updateRobotMotion(double, double);
  * @param speedLeft Reference to the memory location for current speed of the left wheel (m/s).
  * @param speedRight Reference to the memory location for current speed of the right wheel (m/s).
  * @param distance Reference to the memory location for the distance traveled (m).
- * @returns
+ * @returns none
  */
 void readSpeed(double*, double*, double*);
 
@@ -106,6 +106,7 @@ void readSpeed(double*, double*, double*);
  *
  * @param mode current motion mode of the robot
  * @param servoPosition current position of the thermal array sensor (in ticks)
+ * @returns none
  */
 void temperatureSweep(MotionMode, uint16_t*);
 
