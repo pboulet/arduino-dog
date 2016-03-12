@@ -5,7 +5,7 @@
 
 /******************************************************************************************************************/
 
-/*!	\file MotionControl.h
+/*!	\file MotionControl.c
  *
  * \author Ladan Maxamud, Patrick Boulet, Nick Dubus,
  * 			Justin Langis, Alexander Teske & Adnane Gasmi.
