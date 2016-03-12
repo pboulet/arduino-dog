@@ -1,9 +1,6 @@
 /*
  * MotionControl.c
  * Chico The Robot
- *
- * Authors: Ladan Maxamud, Patrick Boulet, Nick Dubus,
- * 			Justin Langis, Alexander Teske & Adnane Gasmi.
  */
 
 /******************************************************************************************************************/
@@ -20,8 +17,6 @@
  * \details This module provides functionalities to control the servo
  * 	motors of the wheels of the robot as well as the one on the
  * 	temperature array sensor.
- *
- *
  */
 
 /******************************************************************************************************************/

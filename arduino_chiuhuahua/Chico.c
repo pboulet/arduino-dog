@@ -1,11 +1,36 @@
-/*!	\file TemperatureMonitor.c
- * \date February 2nd, 2016
- * \brief Temperature Monitor Module
- * \details Defines and manage task execution to read temperatures
- * \from the TemperatureReader module and to display them with
- * \the LED and LCD modules.
+/*
+ * Chico.c
+ * Chico The Robot
  */
 
+/******************************************************************************************************************/
+
+/*!	\file Chico.c
+ *
+ * \author Ladan Maxamud, Patrick Boulet, Nick Dubus,
+ * 			Justin Langis, Alexander Teske & Adnane Gasmi.
+ *
+ * \date March 13th, 2016
+ *
+ * \brief Main program of Chico the robot.  This program is part
+ * of an embedded system (see release documentation for further details).
+ * The functions provided by the system are the following:
+ * 		- Read and display ambient temperature and temperature in a 180 degrees field in front of the robot.
+ * 		- Compute and display the distance traveled.
+ * 		- Read and display the current speed.
+ * 		- Move forward, backward, spin clockwise and counter clockwise.
+ *
+ * \details This modules provides a cyclic scheduler to schedule tasks to
+ * be executed according to a static schedule.  Moreover, tasks are also
+ * defined in this module.  Global variables are used for intertask communication
+ * to exchange data, state, etc.
+ */
+
+/******************************************************************************************************************/
+
+/******************************************************************************************************************/
+
+/*** Standard and AVR includes ****/
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
@@ -13,88 +38,56 @@
 
 #include <avr/io.h>
 
-/* Scheduler include files. */
+/* FreeRTOS Scheduler include files. */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
 
-/* serial interface include file. */
+/* Serial interface include file. */
 #include "usartserial.h"
 
+/* Modules includes. */
 #include "lcd/Lcd.h"
-/* Temperature Reader Module include file. */
 #include "temperatureReader/TemperatureReader.h"
 #include "motion/MotionControl.h"
 #include "led/Led.h"
 #include "motion/Motion.h"
 
-/*-----------------------------------------------------------*/
+/******************************************************************************************************************/
 
-/**
- * A cyclic scheduler implementation.
- */
+/***************************************  Function Declarations  **************************************************/
+
 static void CyclicScheduler(void*);
 
-/**
- * Gets temperature readings from the TPA81 thermal array sensor.
- */
 static void ReadTemperatures(void);
 
-/**
- * Reads the current speed of both wheels.
- */
 static void ReadSpeed(void);
 
-/**
- * Moves the robot in the currently selected direction.
- */
 static void Move(void);
 
-/**
- * Sets the Hydrogen Wifi shield LED based on the temperature readings
- */
 static void UpdateLED(void);
 
-/**
- * Updates the values shown on the LCD screen according to the most current
- * readings from the different sensors of the robot.
- */
 static void UpdateInstrumentCluster(void);
 
-/**
- * Gets the currently selected motion mode (or direction) of
- * the robot.
- */
 static MotionMode GetMotionMode(void);
 
-/*-----------------------------------------------------------*/
+/******************************************************************************************************************/
 
 int usartfd;
 
-/* Total distance traveled by the robot. */
-double distanceTraveled;
+double distanceTraveled;				/* Total distance traveled by the robot. */
+uint8_t *temperatures;					/* Holds the most current temperature reading from the thermal array sensor. */
+double *speedLeft;						/* Holds the most current speed reading from the encoder of the left wheel. */
+double *speedRight;						/* Holds the most current speed reading from the encoder of the right wheel. */
+double *distance;						/* Holds the most current total distance traveled by the robot. */
+uint16_t *centerServoPosition;			/* Holds the most current position of the thermal array servo motor. */
 
-/* Holds the most current temperature reading from the thermal array sensor. */
-uint8_t *temperatures;
+typedef void (*TASK)(void);				/* Task function pointer definition. */
+#define NUM_MINOR_CYCLES 8				/* Number of minor cycles in the cyclic scheduler's schedule. */
+#define MINOR_CYCLE_TIME 50				/* Duration of minor cycles in the cyclic scheduler, in milliseconds. */
 
-/* Holds the most current speed reading from the encoder of the left wheel. */
-double *speedLeft;
-
-/* Holds the most current speed reading from the encoder of the right wheel. */
-double *speedRight;
-
-/* Holds the most current total distance traveled by the robot. */
-double *distance;
-
-/* Holds the most current position of the thermal array servo motor. */
-uint16_t *centerServoPosition;
-
-
-typedef void (*TASK)(void);
-
-#define NUM_MINOR_CYCLES 8
-#define MINOR_CYCLE_TIME 50
+/******************************************************************************************************************/
 
 /* Cyclic scheduler task table. */
 TASK table[NUM_MINOR_CYCLES] = {
@@ -108,25 +101,39 @@ TASK table[NUM_MINOR_CYCLES] = {
 		ReadSpeed
 };
 
-/** Main loop.  Creates tasks, set their order and start the FreeRTOS scheduler.
+/******************************************************************************************************************/
+
+/****************************************  ENTRY POINTS  **********************************************************/
+
+
+/*! \brief Main program entry point.  Initialize serial port communication, all
+ * modules required for the functionality of the robot, allocates memory for intertask
+ * communication global variables.
+
+ *
+ * \details Initialize serial port communication, allocates memory for intertask
+ * communication global variables and initializes all modules required for the functionality of
+ * the robot before enabling interupts.  A FreeRTOS task consisting of the scheduler is
+ * creating and the FreeRTOS scheduler is started, along with interupts being enabled.
+ *
  * @return the status of the program when it ends
  */
 int main(void)
 {
-    // turn on the serial port for debugging or for other USART reasons.
-	usartfd = usartOpen( USART0_ID, 115200, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX); //  serial port: WantedBaud, TxQueueLength, RxQueueLength (8n1)
+    /* Turn on the serial port for debugging or for other USART reasons. */
+	/*  serial port: WantedBaud, TxQueueLength, RxQueueLength (8n1) */
+	usartfd = usartOpen( USART0_ID, 115200, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
+	usart_print_P(PSTR("\r\n\n\nChico: Initializing...\r\n"));
 
-	usart_print_P(PSTR("\r\n\n\nChico: Initializing...\r\n")); // Ok, so we're alive...
-
-	/* Initialize intertask communication variables */
+	/* Allocate memory for intertask communication variables. */
 	temperatures = malloc(sizeof(uint8_t)*9);
 	speedLeft = malloc(sizeof(double));
 	speedRight = malloc(sizeof(double));
-
 	distance = malloc(sizeof(double));
-	*distance = 0;
-
 	centerServoPosition = malloc(sizeof(uint16_t));
+
+	/* No distance was traveled on startup. */
+	*distance = 0;
 
 	/* Initialize all modules before enabling interrupts. */
 	motion_init();
@@ -140,10 +147,14 @@ int main(void)
 	usart_print_P(PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
 }
 
-/** Reads the temperatures from the robot's thermal array
- * sensor each 100ms, then displays the average temperature in
- * front of the robot on the LED and all temperatures readings on
- * the LCD.
+/*!\brief Cyclic Scheduler task (FreeRTOS task).
+ *
+ *\details  Runs tasks defined in the static cyclic
+ * schedule sequentially undefinitely following the minor cycle duration
+ * defined.
+ *
+ * @param gvParameters task parameters (not used in the context of this system right now)
+ * @returns
  */
 static void CyclicScheduler(void* gvParameters) {
     TickType_t xLastWakeTime;							// keeps track of timing
@@ -165,8 +176,18 @@ static void CyclicScheduler(void* gvParameters) {
 	}
 }
 
+/*!\brief Reads speed of wheels, the distance traveled,
+ * 	and triggers execution of the controller.
+ *
+ *\details  If the robot is not stopped, reads the speed of both wheels and
+ * 	and computes the distance traveled.  Then it triggers the speed controller
+ * 	function to adjust the speed of both wheels to match.  If the robot is stopped
+ * 	then it only sets the speed of both wheels to zero.
+ *
+ * @param gvParameters task parameters (not used in the context of this system right now)
+ * @returns
+ */
 static void ReadSpeed() {
-	usart_print_P(PSTR("Reading speed \r\n"));
 	if ( GetMotionMode() != STOP){
 		readSpeed(speedLeft, speedRight, distance);
 		updateRobotMotion(*speedLeft, *speedRight);
@@ -174,17 +195,34 @@ static void ReadSpeed() {
 		*speedLeft = 0;
 		*speedRight = 0;
 	}
-	usart_print_P(PSTR("Done reading speed \r\n"));
 }
 
+/*!\brief Sweeps the servo motor of the thermal array sensor from
+ * left to right and inversely.  Fetches temperature readings from
+ * the thermal array sensor.
+ *
+ *\details  If the robot is not stopped, reads the speed of both wheels and
+ * 	and computes the distance traveled.  Then it triggers the speed controller
+ * 	function to adjust the speed of both wheels to match.  If the robot is stopped
+ * 	then it only sets the speed of both wheels to zero.
+ *
+ * @param gvParameters task parameters (not used in the context of this system right now)
+ * @returns
+ */
 static void ReadTemperatures(void) {
-	usart_print_P(PSTR("Reading temperatures \r\n"));
 	temperatureSweep(GetMotionMode(), centerServoPosition);
 	getTemperatureFromSensor(temperatures);
-
-	usart_print_P(PSTR("Done reading temperatures \r\n"));
 }
 
+/*!\brief Updates the LED to reflect the current motion mode.
+ *
+ *\details  If the robot is moving forwards then it sets the LED
+ * color to green, if moving backward it sets its color to RED, if
+ * its spinning it sets its color to blue and finally if its stopped
+ * the color is set to white.
+ *
+ * @returns
+ */
 static void UpdateLED()
 {
 	switch(GetMotionMode()){
@@ -204,9 +242,21 @@ static void UpdateLED()
 	}
 }
 
+/*!\brief Updates data displayed on the instrument cluster
+ * of the robot (LCD display).
+ *
+ *\details	First computes the average speed of the wheels.  Then computes
+ * the average temperature readings for the four leftmost pixels on the
+ * thermal array sensor and does the same for the four rightmost pixels.
+ * Finally, it prints the current speed and distance traveled on the first
+ * line of the LCD display as well as the ambient temperature and the
+ * average pixels temperature readings on the second row.
+ *
+ * @returns
+ */
 static void UpdateInstrumentCluster(void){
 		clearLCD();
-		usart_print_P(PSTR("Updating instrument cluster \r\n"));
+
 		/* Average speed of the two wheels. */
 		double speed = (*speedLeft + *speedRight)/ 2.0;
 
@@ -232,33 +282,37 @@ static void UpdateInstrumentCluster(void){
 		 */
 		sprintf(bottomRow, "%u %.2f %.2f", temperatures[0], tempAvgLeft, tempAvgRight);
 		writeLCDRowTwo(bottomRow);
-		usart_print_P(PSTR("Done updating the instrument cluster \r\n"));
 }
 
-static void Move(void){
-	usart_print_P(PSTR("Updating the speed \r\n"));
-	setMotionMode(GetMotionMode());
-	usart_print_P(PSTR("Done updating the speed \r\n"));
-}
-
-/**
- * Gets the current motion mode (or direction)
- * of the robot.
+/*!\brief Sets the motion mode of the robot.
  *
- * It currently follows a static demo
- * choregraphy where it goes 1m forward,
- * 1m backward, does a full 360 degrees rotation
- * counter clockwise, does a full 360 degrees
- * rotation clockwise, and finally stops.
+ *\details  Delegate task function that calls the
+ * motion control module to update the current motion
+ * mode status of the system.
+ *
+ * @returns
+ */
+static void Move(void){
+	setMotionMode(GetMotionMode());
+}
+
+/*!\brief Returns the motion mode of the system
+ * based on the distance traveled.
+ *
+ *\details  It currently follows a static demo choregraphy where it goes 1m forward,
+ * 1m backward, does a few rotations counter clockwise, does a few
+ * rotations clockwise, and finally stops.
+ *
+ * @returns current motion mode of the system
  */
 static MotionMode GetMotionMode(void){
 	if ( *distance < 1.0) {
 		return FORWARD;
 	} else if ( *distance < 2.0) {
 		return BACKWARD;
-	} else if ( *distance < 3.0) {	// TODO: need to figure out the distance for a full 360
+	} else if ( *distance < 3.0) {
 		return SPINLEFT;
-	} else if ( *distance < 4.0) {	// TODO: need to figure out the distance for a full 360
+	} else if ( *distance < 4.0) {
 		return SPINRIGHT;
 	} else {						// demo choregraphy is done
 		return STOP;
