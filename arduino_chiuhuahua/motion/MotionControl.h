@@ -1,6 +1,8 @@
 #ifndef INCLUDE_MOTION_CONTROL_H_
 #define INCLUDE_MOTION_CONTROL_H_
 
+// we need to expose this dependency here otherwise our
+// API cannot compile some of its type definitions
 #include <stdint.h>
 
 typedef enum {FORWARD, BACKWARD, SPINLEFT, SPINRIGHT, STOP} MotionMode;

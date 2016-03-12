@@ -1,8 +1,6 @@
 #ifndef LED_H_
 #define LED_H_
 
-#include "avr/io.h"
-
 typedef enum {RED, GREEN, BLUE, WHITE, OFF} LEDState;
 
 

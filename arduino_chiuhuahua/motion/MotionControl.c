@@ -24,15 +24,22 @@ void initMotionControl(uint16_t* servoPosition) {
 	motion_servo_start(MOTION_SERVO_CENTER);
 }
 
+/**
+ * Function: temperatureSweep
+ * Returns: None
+ * Desc: recieves the current servo position, and based on its current position sweeps left or right
+ */
 void temperatureSweep(MotionMode mode, uint16_t* servoPosition) {
 		if (mode == STOP){
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER, INITIAL_PULSE_WIDTH_TICKS);
 		} else if(clockwise == 1){
+            /* increment servo position to create rotation of motor. */
 			*servoPosition += 250;
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER,*servoPosition);
 			if ( *servoPosition >= MAX_PULSE_WIDTH_TICKS)
 				clockwise = 0;
 		} else {
+		   /* decrement servo position to create rotation of motor in opposite direction */
 			*servoPosition -= 250;
 			motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
 			if ( *servoPosition <= MIN_PULSE_WIDTH_TICKS)
@@ -122,7 +129,6 @@ void readSpeed(double *speedLeft, double *speedRight, double* distance) {
 
 	rightRotationTicks[observationRightCtr] = ticCountRight;
 	observationRightCtr = (observationRightCtr + 1) % (numRisingEdgesForAvg - 1);
-
 
 	uint32_t rotationTicksCountLeft = 0;
 	uint32_t rotationTicksCountRight = 0;
