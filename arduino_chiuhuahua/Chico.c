@@ -211,10 +211,10 @@ static void UpdateInstrumentCluster(void){
 		double speed = (*speedLeft + *speedRight)/ 2.0;
 
 		/* Average of the first four temperature pixels from the left. */
-		double tempAvgLeft = (temperatures[0] + temperatures[1] + temperatures[2] + temperatures[3])/4.0;
+		double tempAvgLeft = (temperatures[1] + temperatures[2] + temperatures[3] + temperatures[4])/4.0;
 
 		/* Average of the first four temperature pixels from the right. */
-		double tempAvgRight = (temperatures[4] + temperatures[5] + temperatures[6] + temperatures[7])/4.0;
+		double tempAvgRight = (temperatures[5] + temperatures[6] + temperatures[7] + temperatures[8])/4.0;
 
 		char topRow[16] = "";
 		char bottomRow[16] = "";
@@ -227,10 +227,10 @@ static void UpdateInstrumentCluster(void){
 		writeLCDRowOne(topRow);
 
 		/*
-		 * Prints the average temperature for the first four pixel sensors from the left
-		 * as well as the average temperature for the first four pixel sensors from the right.
+		 * Prints the ambient temperature, followed by the average temperature for the first four pixel sensors from the left
+		 * as well as the average temperature for the first four pixel sensors from the right on the second line of the LCD display.
 		 */
-		sprintf(bottomRow, "temp %.2f %.2f", tempAvgLeft, tempAvgRight);
+		sprintf(bottomRow, "%u %.2f %.2f", temperatures[0], tempAvgLeft, tempAvgRight);
 		writeLCDRowTwo(bottomRow);
 		usart_print_P(PSTR("Done updating the instrument cluster \r\n"));
 }
