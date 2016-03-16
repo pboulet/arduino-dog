@@ -27,26 +27,11 @@
  */
 
 /*!
- * @mainpage provide title for project
- * @author provide author details
- * @date provide date
- * @copyright provide copyright information
- * \par You may provide an overview of the project. Details can be organized in multiple sections and subsection.
- * Replace below the section/subsection names and corresponding description/details according to need.
- * \section section_name_1 Section 1 provide section name and description
- * \par Put your Paragraph describing section
- * \n
- * \subsection subsection_name_1_1 Subsection 1.1 provide subsection name and description
- * \par (paragraph - 01)
- * \par (paragraph - 02)
- * \n
- * \n
- * \section section_name_2 Section 2 provide section name and description
- * \par Put your Paragraph describing section
- * \subsection subsection_name_2_1 Subsection 2.1 provide subsection name and description
- * \par (paragraph - 01)
- * \par (paragraph - 02)
- * \par
- *
+ * @mainpage Chico The Robot
+ * @author Ladan Maxamud, Patrice Boulet, Nick Dubus, Justin Langis, Alexander Teske & Adnane Gasmi.
+ * @date March 13th, 2016
+ * @copyright Ladan Maxamud, Patrice Boulet, Nick Dubus, Justin Langis, Alexander Teske & Adnane Gasmi.
+ * \par Chico the robot is a real-time chihuahua simulator.  Please see release document for more
+ * \n information on release 2.0.0 and view the Files tab for code documentation.
  * ********
  */
