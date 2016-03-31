@@ -45,7 +45,7 @@
 #include "semphr.h"
 
 /* Serial interface include file. */
-#include "usartserial.h"
+#include "include/usart_serial.h"
 
 /* Modules includes. */
 #include "lcd/Lcd.h"
@@ -54,9 +54,18 @@
 #include "led/Led.h"
 #include "motion/Motion.h"
 
+/* Web server modules */
+#include "wireless_interface.h"
+
 /******************************************************************************************************************/
 
 /***************************************  Function Declarations  **************************************************/
+
+static void InitializeHotSpot();
+
+static void InitializeWebServer();
+
+static void ProcessWebServerRequests(void*);
 
 static void CyclicScheduler(void*);
 
@@ -75,6 +84,8 @@ static MotionMode GetMotionMode(void);
 /******************************************************************************************************************/
 
 int usartfd;
+int usartfd2;
+
 
 /*************************************  Type definitions & Macros  ************************************************/
 
@@ -137,6 +148,7 @@ double *distance;
  */
 uint16_t *centerServoPosition;
 
+
 /*!
  *  \var TASK table[NUM_MINOR_CYCLES]
  *  \brief Cyclic scheduler task table.
@@ -173,29 +185,82 @@ int main(void)
 {
     /* Turn on the serial port for debugging or for other USART reasons. */
 	/*  serial port: WantedBaud, TxQueueLength, RxQueueLength (8n1) */
-	usartfd = usartOpen( USART0_ID, 115200, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
+	usartfd = usartOpen( USART_2, 9600, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
+	usartfd2 = usartOpen( USART_0, 115200, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
+
+	/*
+		motion_init();
+		initMotionControl(centerServoPosition);
+		initTemperatureReader();
+		initLCD();
+	*/
+
 	usart_print_P(PSTR("\r\n\n\nChico: Initializing...\r\n"));
 
-	/* Allocate memory for intertask communication variables. */
+
+	portENABLE_INTERRUPTS();
+	InitializeHotSpot();
+	InitializeWebServer();
+
+	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 1, NULL);
+	vTaskStartScheduler();
+
+
+/*	 Allocate memory for intertask communication variables.
 	temperatures = malloc(sizeof(uint8_t)*9);
 	speedLeft = malloc(sizeof(double));
 	speedRight = malloc(sizeof(double));
 	distance = malloc(sizeof(double));
 	centerServoPosition = malloc(sizeof(uint16_t));
 
-	/* No distance was traveled on startup. */
-	*distance = 0;
+	 No distance was traveled on startup.
+	*distance = 0;*/
 
-	/* Initialize all modules before enabling interrupts. */
-	motion_init();
-	initMotionControl(centerServoPosition);
-	initTemperatureReader();
-	initLCD();
-
-	xTaskCreate(CyclicScheduler,  (const portCHAR *)"Cyclic Scheduler" , 256, NULL, 3,  NULL );
-	vTaskStartScheduler();
 
 	usart_print_P(PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
+}
+
+static void InitializeHotSpot() {
+	usart_print_P(PSTR("\r\n\n\nInitializing hot spot..\r\n"));
+
+	/* Initialize the hot spot through the GainSpan module. */
+	gs_initialize_module(USART_2, 9600, USART_0, 115200);
+	gs_set_wireless_ssid("PatriceChicoTeam");
+	gs_activate_wireless_connection();
+	usart_print_P(PSTR("\r\n\n\nActivating hot spot..\r\n"));
+	configure_web_page("Chico: The Robot", "! Control Interface !", HTML_DROPDOWN_LIST);
+	add_element_choice('F', "Forward");
+	add_element_choice('R', "Reverse");
+	start_web_server();
+
+	usart_print_P(PSTR("\r\n\n\nDone activating hot spot..\r\n"));
+}
+
+static void InitializeWebServer() {
+	usart_print_P(PSTR("\r\n\n\nRunning web server initialization task...\r\n"));
+	usart_print_P(PSTR("\r\n\n\nHot spot has been initialized, configuring Web Server...\r\n"));
+
+	usart_print_P(PSTR("\r\n\n\nStarting Web Server...\r\n"));
+	usart_print_P(PSTR("\r\n\n\nDone starting web server...\r\n"));
+}
+
+
+static void ProcessWebServerRequests(void* gvParameters) {
+	usart_print_P(PSTR("\r\n\n\nRunning web server request processing task...\r\n"));
+	TickType_t xLastWakeTime;
+	xLastWakeTime = xTaskGetTickCount();
+	usart_print_P(PSTR("\r\n\n\nWeb server has been initialized, processing requests...\r\n"));
+
+	usart_print_P(PSTR("\r\n\n\nWeb server: processing client requests"));
+	while(1) {
+		process_client_request();
+//		usart_print_P(PSTR("\r\n\n\nWeb server: client requests processed\r\n"));
+
+
+		char clientResponse = get_next_client_response();
+//		usart_print_P(PSTR("\r\n\n\nWeb server: client response was %c\r\n"));
+		vTaskDelayUntil( &xLastWakeTime, (5500 / portTICK_PERIOD_MS));
+	}
 }
 
 /*!\fn CyclicScheduler(void* gvParameters)
@@ -372,8 +437,13 @@ static MotionMode GetMotionMode(void){
 	}
 }
 
-void vApplicationStackOverflowHook( TaskHandle_t xTask,
-                                    portCHAR *pcTaskName )
+void vApplicationStackOverflowHook( TaskHandle_t xTask, portCHAR *pcTaskName )
 {
+	usart_print_P(PSTR("\r\n\n\n*************STACK OVERFLOW OCCURED************..\r\n"));
 	while(1);
 }
+
+void vApplicationIdleHook(void){
+	usart_print_P(PSTR("\r\n\n\n*************Idle hook hit************..\r\n"));
+}
+

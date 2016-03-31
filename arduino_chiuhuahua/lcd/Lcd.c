@@ -19,7 +19,7 @@
 #include "queue.h"
 #include "semphr.h"
 
-#include "usartserial.h"
+#include "../include/usart_serial.h"
 
 
 
@@ -41,7 +41,7 @@ uint8_t const LCD_ROW_2 = 0xC0;
 void initLCD()
 {
 	// Initialize serial connection to LCD using usart serial lib
-	usartlcd = usartOpen(USART1_ID, 9600, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX); //serial port: WantedBaud, TxQueueLength, RxQueueLength (8n1)
+	usartlcd = usartOpen(USART_1, 9600, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX); //serial port: WantedBaud, TxQueueLength, RxQueueLength (8n1)
 
 	// Clear the LCD
     clearLCD();
