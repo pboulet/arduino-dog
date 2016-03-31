@@ -188,12 +188,12 @@ int main(void)
 	usartfd = usartOpen( USART_2, 9600, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
 	usartfd2 = usartOpen( USART_0, 115200, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
 
-	/*
-		motion_init();
-		initMotionControl(centerServoPosition);
-		initTemperatureReader();
-		initLCD();
-	*/
+
+	motion_init();
+	initMotionControl(centerServoPosition);
+	initTemperatureReader();
+	initLCD();
+
 
 	usart_print_P(PSTR("\r\n\n\nChico: Initializing...\r\n"));
 
@@ -228,10 +228,7 @@ static void InitializeHotSpot() {
 	gs_set_wireless_ssid("PatriceChicoTeam");
 	gs_activate_wireless_connection();
 	usart_print_P(PSTR("\r\n\n\nActivating hot spot..\r\n"));
-	configure_web_page("Chico: The Robot", "! Control Interface !", HTML_DROPDOWN_LIST);
-	add_element_choice('F', "Forward");
-	add_element_choice('R', "Reverse");
-	start_web_server();
+
 
 	usart_print_P(PSTR("\r\n\n\nDone activating hot spot..\r\n"));
 }
@@ -239,7 +236,10 @@ static void InitializeHotSpot() {
 static void InitializeWebServer() {
 	usart_print_P(PSTR("\r\n\n\nRunning web server initialization task...\r\n"));
 	usart_print_P(PSTR("\r\n\n\nHot spot has been initialized, configuring Web Server...\r\n"));
-
+	configure_web_page("Chico: The Robot", "! Control Interface !", HTML_DROPDOWN_LIST);
+	add_element_choice('F', "Forward");
+	add_element_choice('R', "Reverse");
+	start_web_server();
 	usart_print_P(PSTR("\r\n\n\nStarting Web Server...\r\n"));
 	usart_print_P(PSTR("\r\n\n\nDone starting web server...\r\n"));
 }
