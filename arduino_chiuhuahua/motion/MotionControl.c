@@ -54,7 +54,9 @@ uint16_t clockwise = 1;											/* Holds 1 if the robot is in a state to turn 
  * @param servoPosition Current position of the thermal array sensor in ticks.
  * @returns none
  */
-void initMotionControl(uint16_t* servoPosition) {
+void InitMotionControl(uint16_t* servoPosition) {
+	motion_init();
+
 	*servoPosition = INITIAL_PULSE_WIDTH_TICKS;
 	motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
 	motion_servo_start(MOTION_SERVO_CENTER);

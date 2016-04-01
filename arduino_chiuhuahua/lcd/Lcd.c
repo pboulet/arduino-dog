@@ -38,7 +38,7 @@ uint8_t const LCD_ROW_2 = 0xC0;
  *  Method which passes definition variables to underlying libs to establish a connection.
  *  A successful initialization will display a message on the LCD
 */
-void initLCD()
+void InitLCD()
 {
 	// Initialize serial connection to LCD using usart serial lib
 	usartlcd = usartOpen(USART_1, 9600, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX); //serial port: WantedBaud, TxQueueLength, RxQueueLength (8n1)

@@ -46,7 +46,7 @@ static const uint8_t MASTER_ADDR = 0xC0;
  *
  * @returns none
  */
-void initTemperatureReader(void);
+void InitTemperatureReader(void);
 
 /*!\brief Reads and store temperature readings from the thermal sensor.
  *

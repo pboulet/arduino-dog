@@ -1468,6 +1468,7 @@ void process_client_request(void){
 				strcpy(find_GET_in_response, strstr(data_string, "GET"));
 				if (*(find_GET_in_response + 5) == '?'){
 					client_response = *(find_GET_in_response + 8);
+			 	 	 usart_xfprint(gainspan.serial_terminal_usart_id, (uint8_t *) "custom client response: " + client_response);
 
 					/*Add to circular buffer for processing*/
 					client_response_buffer[client_response_buffer_write_pointer] = client_response;
@@ -1475,6 +1476,8 @@ void process_client_request(void){
 					if (client_response_buffer_write_pointer >= RING_BUFFER_SIZE){
 						client_response_buffer_write_pointer = 0;
 					}
+				} else  {
+			 	 	 usart_xfprint(gainspan.serial_terminal_usart_id, (uint8_t *) "error, have not found ?");
 				}
 			}
 			if(gs_get_socket_status(wifi_client.client_socket) == SOCKET_STATUS_ESTABLISHED){

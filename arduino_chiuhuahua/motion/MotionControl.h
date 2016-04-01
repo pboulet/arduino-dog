@@ -48,7 +48,7 @@ typedef enum {FORWARD, BACKWARD, SPINLEFT, SPINRIGHT, STOP} MotionMode;
  * @param servoPosition Current position of the thermal array sensor in ticks.
  * @returns none
  */
-void initMotionControl(uint16_t*);
+void InitMotionControl(uint16_t*);
 
 /*!\brief Sets the current motion mode of the robot and enables/disables its motion.
  *

@@ -24,7 +24,7 @@
  *! \fn initLCD(void)
  * \brief Define system variables needed to establish serial connection to LCD component
  *----------------------------------------------------------------------------*/
-void initLCD(void);
+void InitLCD(void);
 
 /*----------------------------------------------------------------------------
  *! \fn writeLCD(char*)

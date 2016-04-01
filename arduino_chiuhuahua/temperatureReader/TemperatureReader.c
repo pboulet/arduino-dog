@@ -29,7 +29,7 @@
  *
  * @returns none
  */
-void initTemperatureReader(void){
+void InitTemperatureReader(void){
 	I2C_Master_Initialise(MASTER_ADDR);
 }
 
