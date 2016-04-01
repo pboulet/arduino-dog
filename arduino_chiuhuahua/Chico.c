@@ -88,19 +88,6 @@ int usartfd2;
 typedef void (*TASK)(void);
 
 
-/*!
- *  \def typedef #define NUM_MINOR_CYCLES 8
- *  \brief Number of minor cycles in the cyclic scheduler's schedule.
- */
-#define NUM_MINOR_CYCLES 8
-
-/*!
- *  \def typedef #define #define MINOR_CYCLE_TIME 50
- *  \brief Duration of minor cycles in the cyclic scheduler, in milliseconds.
- */
-#define MINOR_CYCLE_TIME 50
-
-
 /******************************************************************************************************************/
 
 /******************************************* Global variables *****************************************************/
@@ -139,6 +126,12 @@ double *distance;
  *  \brief Holds the most current position of the thermal array servo motor.
  */
 uint16_t *centerServoPosition;
+
+/*!
+ *  \var WebCommand cmd
+ *  \brief Holds the latest command entered by the user through the web interface.
+ */
+WebCommand cmd;
 
 /******************************************************************************************************************/
 
@@ -193,15 +186,7 @@ static void ProcessWebServerRequests(void* gvParameters) {
 	xLastWakeTime = xTaskGetTickCount();
 
 	while(1) {
-		process_client_request();
-
-		char clientResponse = get_next_client_response();
-
-		if (clientResponse == 'F')
-			usart_print_P(PSTR("\r\n\n\nWeb server: client response was f \r\n"));
-		else if ( clientResponse == 'B')
-			usart_print_P(PSTR("\r\n\n\nWeb server: client response was b \r\n"));
-
+		cmd = GetCommand();
 		vTaskDelayUntil( &xLastWakeTime, (5500 / portTICK_PERIOD_MS));
 	}
 }

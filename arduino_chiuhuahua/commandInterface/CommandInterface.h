@@ -38,7 +38,8 @@ typedef enum {
 	SPINRIGHT_CMD,
 	STOP_CMD,
 	ATTACHMENT_MODE_CMD,
-	WEB_CONTROL_MODE_CMD
+	WEB_CONTROL_MODE_CMD,
+	UNKNOWN_CMD
 } WebCommand;
 
 /*---------------------------------------  ENTRY POINTS  ---------------------------------------------------------*/
@@ -51,6 +52,16 @@ typedef enum {
  * @returns none
  */
 void InitWebInterface(void);
+
+
+/*!\brief
+ *
+ *\details
+ *
+ * @param
+ * @returns none
+ */
+WebCommand GetCommand(void);
 
 #endif
 
