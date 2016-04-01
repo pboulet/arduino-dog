@@ -35,7 +35,7 @@
 // API cannot compile some of its type definitions
 #include <stdint.h>
 
-typedef enum {FORWARD, BACKWARD, SPINLEFT, SPINRIGHT, STOP} MotionMode;
+typedef enum {FORWARD, BACKWARD, SPINLEFT, SPINRIGHT, STOP, UNKNOWN} MotionMode;
 
 /*---------------------------------------  ENTRY POINTS  ---------------------------------------------------------*/
 

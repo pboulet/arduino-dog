@@ -61,17 +61,19 @@
 
 static void ProcessWebServerRequests(void*);
 
+static void Move(void*);
+
 static void ReadTemperatures(void);
 
 static void ReadSpeed(void);
-
-static void Move(void);
 
 static void UpdateLED(void);
 
 static void UpdateInstrumentCluster(void);
 
-static MotionMode GetMotionMode(void);
+static void UpdateMotionMode(WebCommand);
+
+static void UpdateMode(WebCommand);
 
 /******************************************************************************************************************/
 
@@ -91,6 +93,12 @@ typedef void (*TASK)(void);
 /******************************************************************************************************************/
 
 /******************************************* Global variables *****************************************************/
+
+typedef enum {
+	ATTACHMENT,
+	WEB_CONTROL
+} Mode;
+
 /*!
  *  \var double distanceTraveled
  *  \brief Total distance traveled by the robot.
@@ -128,10 +136,16 @@ double *distance;
 uint16_t *centerServoPosition;
 
 /*!
- *  \var WebCommand cmd
- *  \brief Holds the latest command entered by the user through the web interface.
+ *  \var MotionMode motionMode
+ *  \brief Holds the current motion mode of the robot.
  */
-WebCommand cmd;
+MotionMode motionMode;
+
+/*!
+ *	\var Mode mode
+ *	\brief Holds the current mode of the robot (either attachment or web control)
+ */
+Mode mode;
 
 /******************************************************************************************************************/
 
@@ -157,24 +171,27 @@ int main(void)
 	usartfd = usartOpen( USART_2, 9600, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
 	usartfd2 = usartOpen( USART_0, 115200, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
 
+	/*	 Allocate memory for intertask communication variables. */
+	temperatures = malloc(sizeof(uint8_t)*9);
+	speedLeft = malloc(sizeof(double));
+	speedRight = malloc(sizeof(double));
+	distance = malloc(sizeof(double));
+	centerServoPosition = malloc(sizeof(uint16_t));
+
 	InitMotionControl(centerServoPosition);
-	InitTemperatureReader();
-	InitLCD();
+	//InitTemperatureReader();
+	//InitLCD();
 	InitWebInterface();
 
-	/*	 Allocate memory for intertask communication variables.
-		temperatures = malloc(sizeof(uint8_t)*9);
-		speedLeft = malloc(sizeof(double));
-		speedRight = malloc(sizeof(double));
-		distance = malloc(sizeof(double));
-		centerServoPosition = malloc(sizeof(uint16_t));
-
-		 No distance was traveled on startup.
-		*distance = 0;*/
+	/* No distance was traveled on startup. */
+	*distance = 0;
+	mode = WEB_CONTROL;
+	motionMode = STOP;
 
 	usart_print_P(PSTR("\r\n\n\nChico: Initializing...\r\n"));
 
-	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 1, NULL);
+	xTaskCreate(Move, (const portCHAR *)"Move", 256, NULL, 1, NULL);
+	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 2, NULL);
 	vTaskStartScheduler();
 
 	usart_print_P(PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
@@ -183,11 +200,17 @@ int main(void)
 
 static void ProcessWebServerRequests(void* gvParameters) {
 	TickType_t xLastWakeTime;
-	xLastWakeTime = xTaskGetTickCount();
 
 	while(1) {
-		cmd = GetCommand();
-		vTaskDelayUntil( &xLastWakeTime, (5500 / portTICK_PERIOD_MS));
+		xLastWakeTime = xTaskGetTickCount();
+
+		usart_print_P(PSTR("\r\n\n\nRunning Process Web Server Requests Task\r\n"));
+
+		WebCommand cmd = GetCommand();
+		UpdateMotionMode(cmd);
+		UpdateMode(cmd);
+
+		vTaskDelayUntil( &xLastWakeTime, (5000 / portTICK_PERIOD_MS));
 	}
 }
 
@@ -204,7 +227,7 @@ static void ProcessWebServerRequests(void* gvParameters) {
  * @returns none
  */
 static void ReadSpeed() {
-	if ( GetMotionMode() != STOP){
+	if ( motionMode != STOP){
 		readSpeed(speedLeft, speedRight, distance);
 		updateRobotMotion(*speedLeft, *speedRight);
 	} else {
@@ -226,7 +249,7 @@ static void ReadSpeed() {
  * @returns none
  */
 static void ReadTemperatures(void) {
-	temperatureSweep(GetMotionMode(), centerServoPosition);
+	temperatureSweep(motionMode, centerServoPosition);
 	getTemperatureFromSensor(temperatures);
 }
 
@@ -241,7 +264,7 @@ static void ReadTemperatures(void) {
  */
 static void UpdateLED()
 {
-	switch(GetMotionMode()){
+	switch(motionMode){
 		case FORWARD:
 			lightLED(GREEN);
 			break;
@@ -308,30 +331,68 @@ static void UpdateInstrumentCluster(void){
  *
  * @returns none
  */
-static void Move(void){
-	setMotionMode(GetMotionMode());
+static void Move(void* gvParameters){
+	TickType_t xLastWakeTime;
+
+	while(1){
+		xLastWakeTime = xTaskGetTickCount();
+		usart_print_P(PSTR("\r\n\n\nRunning Move Task\r\n"));
+		if ( motionMode != UNKNOWN ) {
+			setMotionMode(motionMode);
+		}
+		vTaskDelayUntil( &xLastWakeTime, (2000 / portTICK_PERIOD_MS));
+	}
 }
 
-/*!\brief Returns the motion mode of the system
- * based on the distance traveled.
+/*!\brief
  *
- *\details  It currently follows a static demo choregraphy where it goes 1m forward,
- * 1m backward, does a few rotations counter clockwise, does a few
- * rotations clockwise, and finally stops.
+ *\details
  *
- * @returns current motion mode of the system
+ * @returns
  */
-static MotionMode GetMotionMode(void){
-	if ( *distance < 1.0) {
-		return FORWARD;
-	} else if ( *distance < 2.0) {
-		return BACKWARD;
-	} else if ( *distance < 3.0) {
-		return SPINLEFT;
-	} else if ( *distance < 4.0) {
-		return SPINRIGHT;
-	} else {						// demo choregraphy is done
-		return STOP;
+static void UpdateMotionMode(WebCommand cmd){
+	switch(cmd){
+		case FORWARD_CMD:
+			motionMode = FORWARD;
+			usart_print_P(PSTR("\r\n\n\nMotion mode is now: forward\r\n"));
+			break;
+		case BACKWARD_CMD:
+			motionMode = BACKWARD;
+			usart_print_P(PSTR("\r\n\n\nMotion mode is now: backward\r\n"));
+			break;
+		case SPINLEFT_CMD:
+			motionMode = SPINLEFT;
+			usart_print_P(PSTR("\r\n\n\nMotion mode is now: spin left\r\n"));
+			break;
+		case SPINRIGHT_CMD:
+			motionMode = SPINRIGHT;
+			usart_print_P(PSTR("\r\n\n\nMotion mode is now: spin right\r\n"));
+			break;
+		case STOP_CMD:
+			motionMode = STOP;
+			usart_print_P(PSTR("\r\n\n\nMotion mode is now: stop\r\n"));
+			break;
+		default:
+			// no change in the motion mode
+			break;
+	}
+}
+
+/*!\brief
+ *
+ *\details
+ *
+ * @returns
+ */
+static void UpdateMode(WebCommand cmd) {
+	switch(cmd) {
+		case ATTACHMENT_MODE_CMD:
+			break;
+		case WEB_CONTROL_MODE_CMD:
+			break;
+		default:
+			// no change in mode
+			break;
 	}
 }
 
