@@ -59,6 +59,8 @@
 
 /***************************************  Function Declarations  **************************************************/
 
+static void ReadObjectDistance(void*);
+
 static void ProcessWebServerRequests(void*);
 
 static void Move(void*);
@@ -74,6 +76,14 @@ static void UpdateInstrumentCluster(void);
 static void UpdateMotionMode(WebCommand);
 
 static void UpdateMode(WebCommand);
+
+static void InitUsart(void);
+
+static void InitIntertaskCommunication(void);
+
+static void InitSubModules(void);
+
+static void CreateTasks(void);
 
 /******************************************************************************************************************/
 
@@ -166,11 +176,36 @@ Mode mode;
  */
 int main(void)
 {
+	usart_print_P(PSTR("\r\n\n\nChico: Initializing...\r\n"));
+
+	InitUsart();
+	InitIntertaskCommunication();
+	InitSubModules();
+	CreateTasks();
+
+	vTaskStartScheduler();
+
+	usart_print_P(PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
+}
+
+static void InitSubModules(void) {
+	InitMotionControl(centerServoPosition);
+	InitTemperatureReader();
+	InitLCD();
+	//InitSonarModule();
+
+	/* Needs to be the last sub-module initialized because it enables interrupts. */
+	InitWebInterface();
+}
+
+static void InitUsart(void){
     /* Turn on the serial port for debugging or for other USART reasons. */
 	/*  serial port: WantedBaud, TxQueueLength, RxQueueLength (8n1) */
 	usartfd = usartOpen( USART_2, 9600, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
 	usartfd2 = usartOpen( USART_0, 115200, portSERIAL_BUFFER_TX, portSERIAL_BUFFER_RX);
+}
 
+static void InitIntertaskCommunication(void) {
 	/*	 Allocate memory for intertask communication variables. */
 	temperatures = malloc(sizeof(uint8_t)*9);
 	speedLeft = malloc(sizeof(double));
@@ -178,23 +213,16 @@ int main(void)
 	distance = malloc(sizeof(double));
 	centerServoPosition = malloc(sizeof(uint16_t));
 
-	InitMotionControl(centerServoPosition);
-	//InitTemperatureReader();
-	//InitLCD();
-	InitWebInterface();
-
 	/* No distance was traveled on startup. */
 	*distance = 0;
 	mode = WEB_CONTROL;
 	motionMode = STOP;
+}
 
-	usart_print_P(PSTR("\r\n\n\nChico: Initializing...\r\n"));
-
+static void CreateTasks(void) {
+	//xTaskCreate(ReadObjectDistance, (const portCHAR *)"ReadObjectDistance", 256, NULL, 5, NULL);
 	xTaskCreate(Move, (const portCHAR *)"Move", 256, NULL, 1, NULL);
 	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 2, NULL);
-	vTaskStartScheduler();
-
-	usart_print_P(PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
 }
 
 
@@ -344,6 +372,22 @@ static void Move(void* gvParameters){
 	}
 }
 
+static void ReadObjectDistance(void* gvParameters) {
+	TickType_t xLastWakeTime; // keeps track of timing
+
+	/* The xLastWakeTime variable needs to be initialised with the current tick
+	 count.  Note that this is the only time we access this variable.  From this
+	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	 API function. */
+	xLastWakeTime = xTaskGetTickCount();
+
+	while (1) {
+		sendPulse();
+		receivePulse();
+		vTaskDelayUntil(&xLastWakeTime, (300 / portTICK_PERIOD_MS));
+	}
+}
+
 /*!\brief
  *
  *\details
@@ -398,6 +442,7 @@ static void UpdateMode(WebCommand cmd) {
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask, portCHAR *pcTaskName )
 {
-	usart_print_P(PSTR("\r\n\n\n*************STACK OVERFLOW OCCURED************..\r\n"));
-	while(1);
+	while (1) {
+		usart_print_P(PSTR("\r\n\n\n*****STACK OVERFLOW OCCURED****\r\n"));
+	}
 }
