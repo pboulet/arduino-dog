@@ -48,24 +48,32 @@
 #include "include/usart_serial.h"
 
 /* Modules includes. */
+#include "sonar/sonar.h"
 #include "lcd/Lcd.h"
 #include "temperatureReader/TemperatureReader.h"
 #include "motion/MotionControl.h"
 #include "led/Led.h"
 #include "motion/Motion.h"
 #include "commandInterface/CommandInterface.h"
+#include "attachment/Attachment.h"
 
 /******************************************************************************************************************/
 
 /***************************************  Function Declarations  **************************************************/
+
+static void ScanTemperatures(void* gvParameters);
+
+static void Attach(void* gvParameters);
+
+static void Follow(void* gvParameters);
+
+static void Panic(void* gvParameters);
 
 static void ReadObjectDistance(void*);
 
 static void ProcessWebServerRequests(void*);
 
 static void Move(void*);
-
-static void ReadTemperatures(void);
 
 static void ReadSpeed(void);
 
@@ -119,7 +127,7 @@ double distanceTraveled;
  *  \var uint8_t *temperatures
  *  \brief Holds the most current temperature reading from the thermal array sensor.
  */
-uint8_t *temperatures;
+uint8_t* temperatures;
 
 /*!
  *  \var double *speedLeft
@@ -176,26 +184,27 @@ Mode mode;
  */
 int main(void)
 {
-	usart_print_P(PSTR("\r\n\n\nChico: Initializing...\r\n"));
-
 	InitUsart();
+
+	usart_fprintf_P(usartfd2,PSTR("\r\n\n\nChico: Initializing...\r\n"));
+
 	InitIntertaskCommunication();
 	InitSubModules();
 	CreateTasks();
 
 	vTaskStartScheduler();
 
-	usart_print_P(PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
+	usart_fprintf_P(usartfd2,PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
 }
 
 static void InitSubModules(void) {
 	InitMotionControl(centerServoPosition);
 	InitTemperatureReader();
-	InitLCD();
+	//InitLCD();
 	//InitSonarModule();
 
 	/* Needs to be the last sub-module initialized because it enables interrupts. */
-	InitWebInterface();
+	//InitWebInterface();
 }
 
 static void InitUsart(void){
@@ -215,16 +224,72 @@ static void InitIntertaskCommunication(void) {
 
 	/* No distance was traveled on startup. */
 	*distance = 0;
-	mode = WEB_CONTROL;
+	mode = ATTACHMENT;
 	motionMode = STOP;
 }
 
 static void CreateTasks(void) {
 	//xTaskCreate(ReadObjectDistance, (const portCHAR *)"ReadObjectDistance", 256, NULL, 5, NULL);
-	xTaskCreate(Move, (const portCHAR *)"Move", 256, NULL, 1, NULL);
-	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 2, NULL);
+	//xTaskCreate(Move, (const portCHAR *)"Move", 256, NULL, 1, NULL);
+	//xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 2, NULL);
+
+	xTaskCreate(Attach, (const portCHAR *)"Attach To Human", 256, NULL, 5, NULL);
+	xTaskCreate(ScanTemperatures, (const portCHAR *)"Scan Temperature", 256, NULL, 2, NULL);
+	xTaskCreate(Follow, (const portCHAR *)"Follow", 256, NULL, 6, NULL);
+	xTaskCreate(Panic, (const portCHAR *)"Panic", 256, NULL, 4, NULL);
 }
 
+
+static void Attach(void* gvParameters) {
+	TickType_t xLastWakeTime;							// keeps track of timing
+
+	/* The xLastWakeTime variable needs to be initialised with the current tick
+	 count.  Note that this is the only time we access this variable.  From this
+	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	 API function. */
+	xLastWakeTime = xTaskGetTickCount();
+
+	while (1) {
+		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning Attach Task\r\n"));
+		FindHuman(temperatures);
+		vTaskDelayUntil(&xLastWakeTime, (1000 / portTICK_PERIOD_MS));
+	}
+
+}
+
+static void Follow(void* gvParameters) {
+	TickType_t xLastWakeTime;							// keeps track of timing
+
+	/* The xLastWakeTime variable needs to be initialised with the current tick
+	 count.  Note that this is the only time we access this variable.  From this
+	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	 API function. */
+	xLastWakeTime = xTaskGetTickCount();
+
+	while (1) {
+		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nFollow Task\r\n"));
+		FollowHuman(temperatures);
+		vTaskDelayUntil(&xLastWakeTime, (100 / portTICK_PERIOD_MS));
+	}
+
+}
+
+static void Panic(void* gvParameters) {
+	TickType_t xLastWakeTime;							// keeps track of timing
+
+	/* The xLastWakeTime variable needs to be initialised with the current tick
+	 count.  Note that this is the only time we access this variable.  From this
+	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	 API function. */
+	xLastWakeTime = xTaskGetTickCount();
+
+	while (1) {
+		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning Panic Task\r\n"));
+		PanicNoHuman();
+		vTaskDelayUntil(&xLastWakeTime, (1000 / portTICK_PERIOD_MS));
+	}
+
+}
 
 static void ProcessWebServerRequests(void* gvParameters) {
 	TickType_t xLastWakeTime;
@@ -276,9 +341,25 @@ static void ReadSpeed() {
  * @param gvParameters task parameters (not used in the context of this system right now)
  * @returns none
  */
-static void ReadTemperatures(void) {
-	temperatureSweep(motionMode, centerServoPosition);
-	getTemperatureFromSensor(temperatures);
+static void ScanTemperatures(void*  gvParameters) {
+	TickType_t xLastWakeTime;
+
+	/* The xLastWakeTime variable needs to be initialised with the current tick
+	 count.  Note that this is the only time we access this variable.  From this
+	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	 API function. */
+	xLastWakeTime = xTaskGetTickCount();
+	while (1) {
+		if (mode == WEB_CONTROL){
+			temperatureSweep(motionMode, centerServoPosition);
+		} else {
+			Sweep();
+			temperatureSweep(STOP, centerServoPosition);
+		}
+		usart_fprintf_P(usartfd2,PSTR("Scanning temperatures"));
+		getTemperatureFromSensor(temperatures);
+		vTaskDelayUntil(&xLastWakeTime, (50 / portTICK_PERIOD_MS));
+	}
 }
 
 /*!\brief Updates the LED to reflect the current motion mode.
@@ -382,8 +463,8 @@ static void ReadObjectDistance(void* gvParameters) {
 	xLastWakeTime = xTaskGetTickCount();
 
 	while (1) {
-		sendPulse();
-		receivePulse();
+		float distance = getDistance();
+	    usart_fprintf_P(usartfd2,PSTR("Distance : %f"), distance);
 		vTaskDelayUntil(&xLastWakeTime, (300 / portTICK_PERIOD_MS));
 	}
 }

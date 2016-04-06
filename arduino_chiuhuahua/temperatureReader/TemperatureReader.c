@@ -68,8 +68,10 @@ void getTemperatureFromSensor(uint8_t *temperatures){
 
 	/* Don't include the read address into our temperature results. */
 	for ( int i = 1; i <= 10; i++){
-		temperatures[i -1] = tmp[i];
+		temperatures[i-1] = tmp[i];
 	}
+
+	free(tmp);
 }
 
 /******************************************************************************************************************/

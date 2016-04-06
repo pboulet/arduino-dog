@@ -20,14 +20,15 @@
 #ifndef SONAR_H_
 #define SONAR_H_
 
+#include <stdint.h>
+
 /******************************************************************************************************************/
 
 
 /********************************************* Entry Points  ******************************************************/
 
 void InitSonarModule(void);
-void sendPulse(void);
-void receivePulse(void);
+float getDistance(void);
 
 #endif
 
