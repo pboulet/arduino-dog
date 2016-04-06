@@ -122,22 +122,22 @@ double distanceTraveled;
 uint8_t *temperatures;
 
 /*!
- *  \var double *speedLeft
+ *  \var float *speedLeft
  *  \brief Holds the most current speed reading from the encoder of the left wheel.
  */
-double *speedLeft;
+float *leftWheelSpeed;
 
 /*!
- *  \var double *speedRight
+ *  \var float *speedRight
  *  \brief Holds the most current speed reading from the encoder of the right wheel.
  */
-double *speedRight;						/* Holds the most current speed reading from the encoder of the right wheel. */
+float *rightWheelSpeed;						/* Holds the most current speed reading from the encoder of the right wheel. */
 
 /*!
- *  \var double *distance
+ *  \var float *distance
  *  \brief Holds the most current total distance traveled by the robot.
  */
-double *distance;
+float *distanceTravelled;
 
 /*!
  *  \var uint16_t *centerServoPosition
@@ -208,13 +208,13 @@ static void InitUsart(void){
 static void InitIntertaskCommunication(void) {
 	/*	 Allocate memory for intertask communication variables. */
 	temperatures = malloc(sizeof(uint8_t)*9);
-	speedLeft = malloc(sizeof(double));
-	speedRight = malloc(sizeof(double));
-	distance = malloc(sizeof(double));
+	leftWheelSpeed = malloc(sizeof(float));
+	rightWheelSpeed = malloc(sizeof(float));
+	distanceTravelled = malloc(sizeof(float));
 	centerServoPosition = malloc(sizeof(uint16_t));
 
 	/* No distance was traveled on startup. */
-	*distance = 0;
+	*distanceTravelled = 0;
 	mode = WEB_CONTROL;
 	motionMode = STOP;
 }
@@ -256,11 +256,12 @@ static void ProcessWebServerRequests(void* gvParameters) {
  */
 static void ReadSpeed() {
 	if ( motionMode != STOP){
-		readSpeed(speedLeft, speedRight, distance);
-		updateRobotMotion(*speedLeft, *speedRight);
+		readSpeed(leftWheelSpeed, rightWheelSpeed, distanceTravelled);
+		calcDistance(*distanceTravelled);
+		updateRobotMotion(*leftWheelSpeed, *rightWheelSpeed);
 	} else {
-		*speedLeft = 0;
-		*speedRight = 0;
+		*leftWheelSpeed = 0;
+		*rightWheelSpeed = 0;
 	}
 }
 
@@ -325,7 +326,7 @@ static void UpdateInstrumentCluster(void){
 		clearLCD();
 
 		/* Average speed of the two wheels. */
-		double speed = (*speedLeft + *speedRight)/ 2.0;
+		double speed = (*leftWheelSpeed + *rightWheelSpeed)/ 2.0;
 
 		/* Average of the first four temperature pixels from the left. */
 		double tempAvgLeft = (temperatures[1] + temperatures[2] + temperatures[3] + temperatures[4])/4.0;
@@ -340,7 +341,7 @@ static void UpdateInstrumentCluster(void){
 		 * Prints the average speed of the two wheels as well as the
 		 * total distance traveled on the first line of the LCD screen.
 		 */
-		sprintf(topRow, "%.2f m/s %.2f m", speed, *distance);
+		sprintf(topRow, "%.2f m/s %.2f m", speed, *distanceTravelled);
 		writeLCDRowOne(topRow);
 
 		/*
