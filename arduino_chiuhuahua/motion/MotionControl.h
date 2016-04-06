@@ -48,7 +48,7 @@ typedef enum {FORWARD, BACKWARD, SPINLEFT, SPINRIGHT, STOP, UNKNOWN} MotionMode;
  * @param servoPosition Current position of the thermal array sensor in ticks.
  * @returns none
  */
-void InitMotionControl(uint16_t*);
+void initMotionControl(uint16_t*);
 
 /*!\brief Sets the current motion mode of the robot and enables/disables its motion.
  *
@@ -74,7 +74,7 @@ void setMotionMode(MotionMode);
  * @param currentSpeedRightWheel Current speed of the right wheel
  * @returns none
  */
-void updateRobotMotion(double, double);
+void updateRobotMotion(float, float);
 
 /*!\brief Reads the speed of both wheels, computes and update the distance traveled.
  *
@@ -91,7 +91,7 @@ void updateRobotMotion(double, double);
  * @param distance Reference to the memory location for the distance traveled (m).
  * @returns none
  */
-void readSpeed(double*, double*, double*);
+void readSpeed(float*, float*, float*);
 
 /*!\brief Rotates the thermal array servo moto in a sweep movement from left to right and inversely.
  *
@@ -109,6 +109,8 @@ void readSpeed(double*, double*, double*);
  * @returns none
  */
 void temperatureSweep(MotionMode, uint16_t*);
+
+void calcDistance(float*);
 
 #endif
 

@@ -26,6 +26,18 @@
 /* --Includes-- */
 #include "MotionControl.h"
 #include "Motion.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <avr/io.h>
+#include <stdbool.h>
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+
+#include "usartserial.h"
 
 /******************************************************************************************************************/
 
@@ -33,12 +45,23 @@ MotionMode motionMode;											/* Current motion mode of the robot (e.g. FORWA
 int rightWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;			/* Current pulse with of the signal sent to the right wheel servo motor. */
 int leftWheelPulseWidth = INITIAL_PULSE_WIDTH_TICKS;			/* Current pulse with of the signal sent to the left wheel servo motor. */
 int moving = 0;													/* Holds 1 if the robot is currently in motion, 0 otherwise. */
-const uint8_t numRisingEdgesForAvg = 32;						/* Number of rising edges to use in the speed average computation. */
-uint32_t observationLeftCtr = 0;								/* Holds the count of encoder observations gathered for the left wheel. */
-uint32_t observationRightCtr = 0;								/* Holds the count of encoder observations gathered for the right wheel. */
-uint32_t leftRotationTicks[32] = {[0 ... 31] = 45000};			/* Holds tick difference values gathered from the encoder of the left wheel. */
-uint32_t rightRotationTicks[32] = {[0 ... 31] = 45000};			/* Holds tick difference values gathered from the encoder of the right wheel. */
-uint16_t clockwise = 1;											/* Holds 1 if the robot is in a state to turn clockwise, 0 otherwise. */
+int clockwise = 0;
+
+int IC_RIGHT_WHEEL = MOTION_WHEEL_LEFT;
+int IC_LEFT_WHEEL = MOTION_WHEEL_RIGHT;
+
+float DIST_BETWEEN_ENCODER_REFLECTIVE = 0.0054; //measured in meters
+float DIST_BETWEEN_ENCODER_REFLECTIVE_SPEED_CSTE = 10800;// = 0.0054/500ns measured in m/s
+
+int move_init = 0;
+
+float leftAvg = 0.0;
+int leftReadCnt = 0;
+float rightAvg = 0.0;
+int rightReadCnt = 0;
+
+int legDistance = 0;
+int totalDistance = 0;
 
 /******************************************************************************************************************/
 
@@ -54,9 +77,7 @@ uint16_t clockwise = 1;											/* Holds 1 if the robot is in a state to turn 
  * @param servoPosition Current position of the thermal array sensor in ticks.
  * @returns none
  */
-void InitMotionControl(uint16_t* servoPosition) {
-	motion_init();
-
+void initMotionControl(uint16_t* servoPosition) {
 	*servoPosition = INITIAL_PULSE_WIDTH_TICKS;
 	motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
 	motion_servo_start(MOTION_SERVO_CENTER);
@@ -112,7 +133,16 @@ void temperatureSweep(MotionMode mode, uint16_t* servoPosition) {
  */
 void setMotionMode(MotionMode _motionMode)
 {
-	motionMode = _motionMode;
+	if (_motionMode != motionMode)
+	{
+		motionMode = _motionMode;
+		leftAvg = 0.0;
+		leftReadCnt = 0;
+		rightAvg = 0.0;
+		rightReadCnt = 0;
+
+		totalDistance += legDistance;
+	}
 
 	if (!moving && motionMode != STOP)
 	{
@@ -162,10 +192,10 @@ void setMotionMode(MotionMode _motionMode)
  * @param currentSpeedRightWheel Current speed of the right wheel
  * @returns none
  */
-void updateRobotMotion(double currentSpeedLeftWheel, double currentSpeedRightWheel) {
+void updateRobotMotion(float currentSpeedLeftWheel, float currentSpeedRightWheel) {
 
 	/* Left wheel is master, right wheel is slave */
-	double rightWheelDiff = currentSpeedRightWheel / currentSpeedLeftWheel;
+	float rightWheelDiff = currentSpeedRightWheel / currentSpeedLeftWheel;
 	if (rightWheelPulseWidth < 2850)
 	{
 		rightWheelPulseWidth = rightWheelDiff * rightWheelPulseWidth;
@@ -193,72 +223,66 @@ void updateRobotMotion(double currentSpeedLeftWheel, double currentSpeedRightWhe
  * @param distance Reference to the memory location for the distance traveled (m).
  * @returns none
  */
-void readSpeed(double *speedLeft, double *speedRight, double* distance) {
-	uint32_t 	ticCountLeft = 0,
-				ticCountRight = 0;
+void readSpeed(float *leftWheelSpeed, float *rightWheelSpeed, float* distanceTravelled) {
+    //!!!
+    //!!!
+    //!!! The Left Encoder reads from the Right Wheel!
+    //!!!
+    //!!!
 
-	/* Reads until it gets a successful reading from the left wheel's encoder. */
-	int leftReadSuccessful = 0;
-	while(leftReadSuccessful != 1)
-		leftReadSuccessful = motion_enc_read(MOTION_WHEEL_LEFT, &ticCountLeft);
+    uint32_t leftWheelNewReading = 0;
+    uint32_t rightWheelNewReading = 0;
+    int isNewReading = 0;
 
-	/* Reads until it gets a successful reading from the right wheel's encoder. */
-	int rightReadSuccessful = 0;
-	while(rightReadSuccessful != 1)
-		rightReadSuccessful = motion_enc_read(MOTION_WHEEL_RIGHT, &ticCountRight);
+    //LEFT WHEEL
+    if(moving == 1){
+        //get new reading if available
+        isNewReading = motion_enc_read(IC_LEFT_WHEEL, &leftWheelNewReading);
+        if(isNewReading == 1){
+            leftReadCnt += 1;
+            leftAvg = (leftAvg * (leftReadCnt-1) + leftWheelNewReading) / leftReadCnt;
+            *leftWheelSpeed = DIST_BETWEEN_ENCODER_REFLECTIVE_SPEED_CSTE / leftAvg;
+            usart_printf_P(PSTR("LEFT WHEEL READING: %.4f \r\n"), *leftWheelSpeed);
 
-	/* Stores the tick count reading in the left wheel most recent observations buffer. */
-	leftRotationTicks[observationLeftCtr] = ticCountLeft;
-	observationLeftCtr = (observationLeftCtr + 1 ) % (numRisingEdgesForAvg - 1);
+        }
+    }
+    //RIGHT WHEEL
+    if(moving == 1){
+        //get new reading if available
+        isNewReading = motion_enc_read(IC_RIGHT_WHEEL, &rightWheelNewReading);
+        if(isNewReading == 1){
+            rightReadCnt += 1;
+            rightAvg = (rightAvg * (rightReadCnt-1) + rightWheelNewReading) / rightReadCnt;
+            *rightWheelSpeed = DIST_BETWEEN_ENCODER_REFLECTIVE_SPEED_CSTE / rightAvg;
+        }
+    }
+}
 
-	/* Stores the tick count reading in the right wheel most recent observations buffer. */
-	rightRotationTicks[observationRightCtr] = ticCountRight;
-	observationRightCtr = (observationRightCtr + 1) % (numRisingEdgesForAvg - 1);
+/*
+assuming the accuracy of two significant digits (e.g. 0.xyz m/s) then
+0.54cm / (80,000 * 500ns) = 0.135 ms/s
+0.54cm / (81,000 * 500ns) = 0.133 ms/s
+0.54cm / (82,000 * 500ns) = 0.131 ms/s
+0.54cm / (83,000 * 500ns) = 0.130 ms/s
+you can be off by +/- 3,000 tics and values xy are not affected..
 
-	uint32_t rotationTicksCountLeft = 0;			/* Summation of the tick counts of the 32 most recent speed readings of the left wheel. */
-	uint32_t rotationTicksCountRight = 0;			/* Summation of the tick counts of the 32 most recent speed readings of the right wheel. */
-	uint8_t rotationLeftTicksCountForAvg = 0;		/* Number of successful most recent speed readings up to now for the left wheel (max 32). */
-	uint8_t rotationRightTicksCountForAvg = 0;		/* Number of successful most recent speed readings up to now for the right wheel (max 32). */
-
-	/* Computes the summation of tick count and updates the count of relevant observations for the left wheel's encoder up to now. */
-	for(int i = 0; i < numRisingEdgesForAvg; i++){
-		if (leftRotationTicks[i] != 0) {
-			rotationTicksCountLeft += leftRotationTicks[i];
-			rotationLeftTicksCountForAvg++;
-		}
-	}
-
-	/* Computes the summation of tick count and updates the count of relevant observations for the right wheel's encoder up to now. */
-	for(int i = 0; i < numRisingEdgesForAvg; i++){
-		if (rightRotationTicks[i] != 0) {
-			rotationTicksCountRight += rightRotationTicks[i];
-			rotationRightTicksCountForAvg++;
-		}
-	}
-
-	/* Computes the speed of both wheels. */
-	/* Formula used is the following:
-	 *
-	 *		(c/n)/(t/n)*l
-	 *
-	 *		where 	c is the circumference of a wheel,
-	 *				n the number of relevant observation to take into account in the average,
-	 *				t the summations of relevant tick count observations for the average,
-	 *				l the number of seconds in a tick
-	 */
-	*speedLeft = (0.1728/(double)rotationLeftTicksCountForAvg) / (((double)rotationTicksCountLeft / (double)rotationLeftTicksCountForAvg) * 0.0000005);
-	*speedRight = (0.1728/(double)rotationRightTicksCountForAvg) / (((double)rotationTicksCountRight /(double)rotationRightTicksCountForAvg) * 0.0000005);
-
-	/* Incremments the distance traveled by the distance traveled since the last execution of this task. */
-	/* Forumla used is the following:
-	 *
-	 * 		(v1+v2)/2 * t
-	 *
-	 * 		where	v1 is the speed of the left wheel
-	 * 				v2 is the speed of the right wheel
-	 * 				t is the number of seconds elapsed since the last execution of this task
-	 */
-	*distance += (*speedLeft + *speedRight)/2.0 * 0.100;
+in looking at the online doc chart, the values vary between 80k and 100k.  hence at the other extreme
+we see that the speed can vary alot.
+0.54cm / (100,000 * 500ns) = 0.108 ms/s
+It would be a good idea to "reproduce the prof's chart" and measure the variation between measurments for our robot
+at max speed (and other?).
+When doing the experiment, we know the register value we are setting in tics (say x) and the tic time elapsed
+between each of the 32 rotations (like what the prof has done). we average those values out and get a y
+so we know when we set x we expect y (or a certain amount of error).
+using this "custom formla" we can adjust readings as to avoid calculating strange averages in real time
+*/
+void calcDistance(float* distanceTravelled){
+    if (leftAvg > 0.0 && rightAvg > 0.0){
+        //calculate the average number of encoders read (e.g. using count) and multiply by the distance separating them.
+        legDistance = ( (rightReadCnt + leftReadCnt)/2 ) * DIST_BETWEEN_ENCODER_REFLECTIVE;
+        *distanceTravelled = legDistance + totalDistance;
+        //usart_printf_P(PSTR("AVG SPEED %.4f m.s(LW:%.4f m.s, RW:%.4f m.s)    DIST: %.4f m\r\n"), avgSpeed, leftWheelSpeed, rightWheelSpeed, distanceTraveled);
+    }
 }
 
 /******************************************************************************************************************/
