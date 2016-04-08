@@ -217,7 +217,7 @@ static void InitSubModules(void) {
 	InitSonarModule();
 
 	/* Needs to be the last sub-module initialized because it enables interrupts. */
-	InitWebInterface();
+	//InitWebInterface();
 
 
 }
@@ -240,14 +240,14 @@ static void InitIntertaskCommunication(void) {
 
 	/* No distance was traveled on startup. */
 	*distance = 0;
-	mode = MOVEMENT;
+	mode = ATTACHMENT;
 	motionMode = STOP;
 }
 
 static void CreateTasks(void) {
 	xTaskCreate(CommandMode, (const portCHAR*)"Execute CommandMode",256,NULL,4,NULL);
-	xTaskCreate(AttachmentMode, (const portCHAR *)"Execute AttachMode", 256, NULL, 3, NULL);
-	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 5, NULL);
+	xTaskCreate(AttachmentMode, (const portCHAR *)"Execute AttachMode", 512, NULL, 3, NULL);
+	//xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 5, NULL);
 
 	usart_printf_P(PSTR("\r\n\nFree Heap Size: %u\r\n"),xPortGetFreeHeapSize() );
 
@@ -267,18 +267,17 @@ static void ProcessWebServerRequests(void* gvParameters) {
 }
 
 static void CommandMode(void* gvParameters) {
-	TickType_t xLastWakeTime;
-	xLastWakeTime = xTaskGetTickCount();
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 	while(1) {
-
-
-		ScanTemperatures();
-		ReadObjectDistance();
-		Move();
-		UpdateLED();
-		ReadSpeed();
-		UpdateInstrumentCluster();
-		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning CommandMode Task\r\n"));
+		//usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning CommandMode Task\r\n"));
+		if ( mode != ATTACHMENT){
+			ScanTemperatures();
+			ReadObjectDistance();
+			Move();
+			UpdateLED();
+			ReadSpeed();
+			UpdateInstrumentCluster();
+		}
 		vTaskDelayUntil( &xLastWakeTime, (1000 / portTICK_PERIOD_MS));
 	}
 }
@@ -287,71 +286,32 @@ static void AttachmentMode(void* gvParameters) {
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
 	while(1) {
+		//usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning AttachmentMode Task\r\n"));
 		if(mode == ATTACHMENT){
-		ScanTemperatures();
-		Attach();
-		Follow();
-		Panic();
-		UpdateInstrumentCluster();
+			ScanTemperatures();
+			Attach();
+			Follow();
+			//vTaskDelay(10 / portTICK_PERIOD_MS);
+			Panic();
+			//UpdateInstrumentCluster();
 		}
-		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning AttachmentMode Task\r\n"));
-
-		vTaskDelayUntil( &xLastWakeTime, (1000 / portTICK_PERIOD_MS));
+		vTaskDelayUntil( &xLastWakeTime, (50 / portTICK_PERIOD_MS));
 	}
 }
 
 //static void Attach(void* gvParameters) {
 static void Attach(){
-//	TickType_t xLastWakeTime;							// keeps track of timing
-
-	/* The xLastWakeTime variable needs to be initialised with the current tick
-	 count.  Note that this is the only time we access this variable.  From this
-	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	 API function. */
-	//xLastWakeTime = xTaskGetTickCount();
-
-	//while (1) {
-//		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning Attach Task\r\n"));
-		FindHuman(temperatures);
-//		vTaskDelayUntil(&xLastWakeTime, (100 / portTICK_PERIOD_MS));
-//	}
-
+	FindHuman(temperatures);
 }
 
 //static void Follow(void* gvParameters) {
 static void Follow(void){
-//	TickType_t xLastWakeTime;							// keeps track of timing
-
-	/* The xLastWakeTime variable needs to be initialised with the current tick
-	 count.  Note that this is the only time we access this variable.  From this
-	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	 API function. */
-//	xLastWakeTime = xTaskGetTickCount();
-
-//	while (1) {
-//		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nFollow Task\r\n"));
-		FollowHuman(temperatures);
-//		vTaskDelayUntil(&xLastWakeTime, (100 / portTICK_PERIOD_MS));
-//	}
-
+	FollowHuman(temperatures);
 }
 
 //static void Panic(void* gvParameters) {
 static void Panic(void){
-//	TickType_t xLastWakeTime;							// keeps track of timing
-
-	/* The xLastWakeTime variable needs to be initialised with the current tick
-	 count.  Note that this is the only time we access this variable.  From this
-	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	 API function. */
-//	xLastWakeTime = xTaskGetTickCount();
-
-//	while (1) {
-//		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning Panic Task\r\n"));
-		PanicNoHuman();
-//		vTaskDelayUntil(&xLastWakeTime, (1000 / portTICK_PERIOD_MS));
-//	}
-
+	PanicNoHuman();
 }
 
 

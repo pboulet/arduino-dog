@@ -4,6 +4,7 @@
 #include "../temperatureReader/TemperatureReader.h"
 #include "../motion/MotionControl.h"
 #include "../motion/motion.h"
+#include "../sonar/custom_timer.h"
 
 /******************************************************************************************************************/
 
@@ -55,7 +56,6 @@ void FindHuman(uint8_t* temperatures) {
 		if (temperatures[i] >= HUMAN_TEMP
 				&& temperatures[i] <= HUMAN_TEMP + 7) {
 			HUMAN = 1;
-			setMotionMode(STOP);
 			break;
 		}
 	}
@@ -91,20 +91,15 @@ void FollowHuman(uint8_t* temperatures) {
 		if (avgtempLeft > avgtempCenter) {
 			//turn left
 			setMotionMode(SPINRIGHT);
-			while (risingEdgeR == 0 && risingEdgeL == 0) {
-				risingEdgeL = motion_enc_read(MOTION_WHEEL_LEFT, NULL);
-				risingEdgeR = motion_enc_read(MOTION_WHEEL_RIGHT, NULL);
-			}
-			setMotionMode(STOP);
-
+		    delay_milliseconds(5);
+		    setMotionMode(FORWARD);
 		} else if (avgtempRight > avgtempCenter) {
 			//turn right
 			setMotionMode(SPINLEFT);
-			while (risingEdgeR == 0 && risingEdgeL == 0) {
-				risingEdgeL = motion_enc_read(MOTION_WHEEL_LEFT, NULL);
-				risingEdgeR = motion_enc_read(MOTION_WHEEL_RIGHT, NULL);
-			}
-			setMotionMode(STOP);
+		    delay_milliseconds(5);
+		    setMotionMode(FORWARD);
+		} else {
+			setMotionMode(FORWARD);
 		}
 		if (avgtempLeft < HUMAN_TEMP && avgtempRight < HUMAN_TEMP
 				&& avgtempCenter < HUMAN_TEMP) {
