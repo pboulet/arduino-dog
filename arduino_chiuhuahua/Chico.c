@@ -61,29 +61,31 @@
 
 /***************************************  Function Declarations  **************************************************/
 
-static void ScanTemperatures(void* gvParameters);
+static void CommandMode(void* gvParameters);
 
-static void Attach(void* gvParameters);
+static void AttachmentMode(void* gvParameters);
 
-static void Follow(void* gvParameters);
+static void ScanTemperatures(void);
 
-static void Panic(void* gvParameters);
+static void Attach(void);
 
-static void ReadObjectDistance(void*);
+static void Follow(void);
+
+static void Panic(void);
+
+static void ReadObjectDistance(void);
 
 static void ProcessWebServerRequests(void*);
 
-static void Move(void*);
+static void UpdateInstrumentCluster(void);
+
+static void Move(void);
 
 static void ReadSpeed(void);
 
 static void UpdateLED(void);
 
-static void UpdateInstrumentCluster(void);
-
 static void UpdateMotionMode(WebCommand);
-
-static void UpdateMode(WebCommand);
 
 static void InitUsart(void);
 
@@ -114,8 +116,12 @@ typedef void (*TASK)(void);
 
 typedef enum {
 	ATTACHMENT,
-	WEB_CONTROL
+	MOVEMENT,
+	SCAN_TEMPERATURES,
+	SCAN_DISTANCE
 } Mode;
+
+
 
 /*!
  *  \var double distanceTraveled
@@ -146,6 +152,12 @@ double *speedRight;						/* Holds the most current speed reading from the encode
  *  \brief Holds the most current total distance traveled by the robot.
  */
 double *distance;
+
+/*!
+ *  \var double *objectDistance
+ *  \brief Holds the distance of the object in front of the robot.
+ */
+float *objectDistance;
 
 /*!
  *  \var uint16_t *centerServoPosition
@@ -192,6 +204,7 @@ int main(void)
 	InitSubModules();
 	CreateTasks();
 
+	//usart_printf_P(PSTR("\r\n\nFree Heap Size: %u\r\n"),xPortGetFreeHeapSize() ); // needs heap_1 or heap_2 for this function to succeed.
 	vTaskStartScheduler();
 
 	usart_fprintf_P(usartfd2,PSTR("\r\n\n\nGoodbye... no space for idle task!\r\n")); // Doh, so we're dead...
@@ -200,11 +213,13 @@ int main(void)
 static void InitSubModules(void) {
 	InitMotionControl(centerServoPosition);
 	InitTemperatureReader();
-	//InitLCD();
-	//InitSonarModule();
+	InitLCD();
+	InitSonarModule();
 
 	/* Needs to be the last sub-module initialized because it enables interrupts. */
-	//InitWebInterface();
+	InitWebInterface();
+
+
 }
 
 static void InitUsart(void){
@@ -221,73 +236,20 @@ static void InitIntertaskCommunication(void) {
 	speedRight = malloc(sizeof(double));
 	distance = malloc(sizeof(double));
 	centerServoPosition = malloc(sizeof(uint16_t));
+	objectDistance = malloc(sizeof(float));
 
 	/* No distance was traveled on startup. */
 	*distance = 0;
-	mode = ATTACHMENT;
+	mode = MOVEMENT;
 	motionMode = STOP;
 }
 
 static void CreateTasks(void) {
-	//xTaskCreate(ReadObjectDistance, (const portCHAR *)"ReadObjectDistance", 256, NULL, 5, NULL);
-	//xTaskCreate(Move, (const portCHAR *)"Move", 256, NULL, 1, NULL);
-	//xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 2, NULL);
+	xTaskCreate(CommandMode, (const portCHAR*)"Execute CommandMode",256,NULL,4,NULL);
+	xTaskCreate(AttachmentMode, (const portCHAR *)"Execute AttachMode", 256, NULL, 3, NULL);
+	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 5, NULL);
 
-	xTaskCreate(Attach, (const portCHAR *)"Attach To Human", 256, NULL, 5, NULL);
-	xTaskCreate(ScanTemperatures, (const portCHAR *)"Scan Temperature", 256, NULL, 2, NULL);
-	xTaskCreate(Follow, (const portCHAR *)"Follow", 256, NULL, 6, NULL);
-	xTaskCreate(Panic, (const portCHAR *)"Panic", 256, NULL, 4, NULL);
-}
-
-
-static void Attach(void* gvParameters) {
-	TickType_t xLastWakeTime;							// keeps track of timing
-
-	/* The xLastWakeTime variable needs to be initialised with the current tick
-	 count.  Note that this is the only time we access this variable.  From this
-	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	 API function. */
-	xLastWakeTime = xTaskGetTickCount();
-
-	while (1) {
-		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning Attach Task\r\n"));
-		FindHuman(temperatures);
-		vTaskDelayUntil(&xLastWakeTime, (1000 / portTICK_PERIOD_MS));
-	}
-
-}
-
-static void Follow(void* gvParameters) {
-	TickType_t xLastWakeTime;							// keeps track of timing
-
-	/* The xLastWakeTime variable needs to be initialised with the current tick
-	 count.  Note that this is the only time we access this variable.  From this
-	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	 API function. */
-	xLastWakeTime = xTaskGetTickCount();
-
-	while (1) {
-		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nFollow Task\r\n"));
-		FollowHuman(temperatures);
-		vTaskDelayUntil(&xLastWakeTime, (100 / portTICK_PERIOD_MS));
-	}
-
-}
-
-static void Panic(void* gvParameters) {
-	TickType_t xLastWakeTime;							// keeps track of timing
-
-	/* The xLastWakeTime variable needs to be initialised with the current tick
-	 count.  Note that this is the only time we access this variable.  From this
-	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	 API function. */
-	xLastWakeTime = xTaskGetTickCount();
-
-	while (1) {
-		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning Panic Task\r\n"));
-		PanicNoHuman();
-		vTaskDelayUntil(&xLastWakeTime, (1000 / portTICK_PERIOD_MS));
-	}
+	usart_printf_P(PSTR("\r\n\nFree Heap Size: %u\r\n"),xPortGetFreeHeapSize() );
 
 }
 
@@ -297,15 +259,101 @@ static void ProcessWebServerRequests(void* gvParameters) {
 	while(1) {
 		xLastWakeTime = xTaskGetTickCount();
 
-		usart_print_P(PSTR("\r\n\n\nRunning Process Web Server Requests Task\r\n"));
-
 		WebCommand cmd = GetCommand();
 		UpdateMotionMode(cmd);
-		UpdateMode(cmd);
-
+		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning WebServer Task\r\n"));
 		vTaskDelayUntil( &xLastWakeTime, (5000 / portTICK_PERIOD_MS));
 	}
 }
+
+static void CommandMode(void* gvParameters) {
+	TickType_t xLastWakeTime;
+	xLastWakeTime = xTaskGetTickCount();
+	while(1) {
+
+
+		ScanTemperatures();
+		ReadObjectDistance();
+		Move();
+		UpdateLED();
+		ReadSpeed();
+		UpdateInstrumentCluster();
+		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning CommandMode Task\r\n"));
+		vTaskDelayUntil( &xLastWakeTime, (1000 / portTICK_PERIOD_MS));
+	}
+}
+
+static void AttachmentMode(void* gvParameters) {
+	TickType_t xLastWakeTime;
+	xLastWakeTime = xTaskGetTickCount();
+	while(1) {
+		if(mode == ATTACHMENT){
+		ScanTemperatures();
+		Attach();
+		Follow();
+		Panic();
+		UpdateInstrumentCluster();
+		}
+		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning AttachmentMode Task\r\n"));
+
+		vTaskDelayUntil( &xLastWakeTime, (1000 / portTICK_PERIOD_MS));
+	}
+}
+
+//static void Attach(void* gvParameters) {
+static void Attach(){
+//	TickType_t xLastWakeTime;							// keeps track of timing
+
+	/* The xLastWakeTime variable needs to be initialised with the current tick
+	 count.  Note that this is the only time we access this variable.  From this
+	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	 API function. */
+	//xLastWakeTime = xTaskGetTickCount();
+
+	//while (1) {
+//		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning Attach Task\r\n"));
+		FindHuman(temperatures);
+//		vTaskDelayUntil(&xLastWakeTime, (100 / portTICK_PERIOD_MS));
+//	}
+
+}
+
+//static void Follow(void* gvParameters) {
+static void Follow(void){
+//	TickType_t xLastWakeTime;							// keeps track of timing
+
+	/* The xLastWakeTime variable needs to be initialised with the current tick
+	 count.  Note that this is the only time we access this variable.  From this
+	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	 API function. */
+//	xLastWakeTime = xTaskGetTickCount();
+
+//	while (1) {
+//		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nFollow Task\r\n"));
+		FollowHuman(temperatures);
+//		vTaskDelayUntil(&xLastWakeTime, (100 / portTICK_PERIOD_MS));
+//	}
+
+}
+
+//static void Panic(void* gvParameters) {
+static void Panic(void){
+//	TickType_t xLastWakeTime;							// keeps track of timing
+
+	/* The xLastWakeTime variable needs to be initialised with the current tick
+	 count.  Note that this is the only time we access this variable.  From this
+	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	 API function. */
+//	xLastWakeTime = xTaskGetTickCount();
+
+//	while (1) {
+//		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning Panic Task\r\n"));
+		PanicNoHuman();
+//		vTaskDelayUntil(&xLastWakeTime, (1000 / portTICK_PERIOD_MS));
+//	}
+
+}
+
 
 /*! \fn static void ReadSpeed()
  * \brief Reads speed of wheels, the distance traveled,
@@ -341,25 +389,34 @@ static void ReadSpeed() {
  * @param gvParameters task parameters (not used in the context of this system right now)
  * @returns none
  */
-static void ScanTemperatures(void*  gvParameters) {
-	TickType_t xLastWakeTime;
+//static void ScanTemperatures(void*  gvParameters) {
+static void ScanTemperatures(void){
+	//TickType_t xLastWakeTime;
 
 	/* The xLastWakeTime variable needs to be initialised with the current tick
 	 count.  Note that this is the only time we access this variable.  From this
 	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
 	 API function. */
-	xLastWakeTime = xTaskGetTickCount();
-	while (1) {
-		if (mode == WEB_CONTROL){
-			temperatureSweep(motionMode, centerServoPosition);
-		} else {
+//	xLastWakeTime = xTaskGetTickCount();
+//	while (1) {
+		if (mode == ATTACHMENT){
 			Sweep();
 			temperatureSweep(STOP, centerServoPosition);
+		} else if (mode == SCAN_TEMPERATURES) {
+			/* Override just so it keeps sweeping for now. */
+			temperatureSweep(FORWARD, centerServoPosition);
+		} else if (mode == SCAN_DISTANCE) {
+			temperatureSweep(STOP, centerServoPosition);
+		} else {
+		    temperatureSweep(motionMode, centerServoPosition);
 		}
-		usart_fprintf_P(usartfd2,PSTR("Scanning temperatures"));
 		getTemperatureFromSensor(temperatures);
-		vTaskDelayUntil(&xLastWakeTime, (50 / portTICK_PERIOD_MS));
-	}
+		if ( mode == SCAN_TEMPERATURES) {
+//			vTaskDelayUntil(&xLastWakeTime, (100 / portTICK_PERIOD_MS));
+		} else {
+//			vTaskDelayUntil(&xLastWakeTime, (50 / portTICK_PERIOD_MS));
+		}
+//	}
 }
 
 /*!\brief Updates the LED to reflect the current motion mode.
@@ -402,34 +459,55 @@ static void UpdateLED()
  *
  * @returns none
  */
+//static void UpdateInstrumentCluster(void* gvParameters){
 static void UpdateInstrumentCluster(void){
+	//TickType_t xLastWakeTime;
+
+	/* The xLastWakeTime variable needs to be initialised with the current tick
+	 count.  Note that this is the only time we access this variable.  From this
+	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
+	 API function. */
+//	xLastWakeTime = xTaskGetTickCount();
+
+//	while(1) {
 		clearLCD();
-
-		/* Average speed of the two wheels. */
-		double speed = (*speedLeft + *speedRight)/ 2.0;
-
-		/* Average of the first four temperature pixels from the left. */
-		double tempAvgLeft = (temperatures[1] + temperatures[2] + temperatures[3] + temperatures[4])/4.0;
-
-		/* Average of the first four temperature pixels from the right. */
-		double tempAvgRight = (temperatures[5] + temperatures[6] + temperatures[7] + temperatures[8])/4.0;
 
 		char topRow[16] = "";
 		char bottomRow[16] = "";
 
-		/*
-		 * Prints the average speed of the two wheels as well as the
-		 * total distance traveled on the first line of the LCD screen.
-		 */
-		sprintf(topRow, "%.2f m/s %.2f m", speed, *distance);
-		writeLCDRowOne(topRow);
+		if (mode == SCAN_TEMPERATURES) {
+            sprintf(topRow,
+                            "%02d %02d %02d %02d [%02d]",
+                            temperatures[1],
+                            temperatures[2],
+                            temperatures[3],
+                            temperatures[4],
+                            temperatures[0]);
 
-		/*
-		 * Prints the ambient temperature, followed by the average temperature for the first four pixel sensors from the left
-		 * as well as the average temperature for the first four pixel sensors from the right on the second line of the LCD display.
-		 */
-		sprintf(bottomRow, "%u %.2f %.2f", temperatures[0], tempAvgLeft, tempAvgRight);
+            sprintf(bottomRow,
+                            "%02d %02d %02d %02d",
+                            temperatures[5],
+                            temperatures[6],
+                            temperatures[7],
+                            temperatures[8]);
+
+		} else if ( mode  == SCAN_DISTANCE) {
+			sprintf(topRow, "Scan Distance");
+			sprintf(bottomRow, "Object at:%.2f m", *objectDistance);
+		} else {
+			/* Average speed of the two wheels. */
+			double speed = (*speedLeft + *speedRight)/ 2.0;
+
+			/*
+			 * Prints the average speed of the two wheels as well as the
+			 * total distance traveled on the first line of the LCD screen.
+			 */
+			sprintf(topRow, "%.2f m/s %.2f m", speed, *distance);
+		}
+		writeLCDRowOne(topRow);
 		writeLCDRowTwo(bottomRow);
+//		vTaskDelayUntil(&xLastWakeTime, (400 / portTICK_PERIOD_MS));
+//	}
 }
 
 /*!\brief Sets the motion mode of the robot.
@@ -440,33 +518,37 @@ static void UpdateInstrumentCluster(void){
  *
  * @returns none
  */
-static void Move(void* gvParameters){
-	TickType_t xLastWakeTime;
+//static void Move(void* gvParameters){
+static void Move(void){
+//	TickType_t xLastWakeTime;
 
-	while(1){
-		xLastWakeTime = xTaskGetTickCount();
-		usart_print_P(PSTR("\r\n\n\nRunning Move Task\r\n"));
+//	while(1){
+//		xLastWakeTime = xTaskGetTickCount();
 		if ( motionMode != UNKNOWN ) {
 			setMotionMode(motionMode);
 		}
-		vTaskDelayUntil( &xLastWakeTime, (2000 / portTICK_PERIOD_MS));
-	}
+//		vTaskDelayUntil( &xLastWakeTime, (2000 / portTICK_PERIOD_MS));
+//	}
 }
 
-static void ReadObjectDistance(void* gvParameters) {
-	TickType_t xLastWakeTime; // keeps track of timing
+//static void ReadObjectDistance(void* gvParameters) {
+static void ReadObjectDistance(void){
+//	TickType_t xLastWakeTime; // keeps track of timing
 
 	/* The xLastWakeTime variable needs to be initialised with the current tick
 	 count.  Note that this is the only time we access this variable.  From this
 	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
 	 API function. */
-	xLastWakeTime = xTaskGetTickCount();
+//	xLastWakeTime = xTaskGetTickCount();
 
-	while (1) {
-		float distance = getDistance();
-	    usart_fprintf_P(usartfd2,PSTR("Distance : %f"), distance);
-		vTaskDelayUntil(&xLastWakeTime, (300 / portTICK_PERIOD_MS));
-	}
+//	while (1) {
+	    //usart_fprintf_P(usartfd2,PSTR("Read Distance"));
+		if(mode==SCAN_DISTANCE){
+		getDistance(objectDistance);
+		}
+	    //usart_fprintf_P(usartfd2,PSTR("Distance : %f"), *objectDistance);
+//		vTaskDelayUntil(&xLastWakeTime, (300 / portTICK_PERIOD_MS));
+//	}
 }
 
 /*!\brief
@@ -479,44 +561,46 @@ static void UpdateMotionMode(WebCommand cmd){
 	switch(cmd){
 		case FORWARD_CMD:
 			motionMode = FORWARD;
-			usart_print_P(PSTR("\r\n\n\nMotion mode is now: forward\r\n"));
+			mode = MOVEMENT;
+			//usart_print_P(PSTR("\r\n\n\nMotion mode is now: forward\r\n"));
 			break;
 		case BACKWARD_CMD:
 			motionMode = BACKWARD;
-			usart_print_P(PSTR("\r\n\n\nMotion mode is now: backward\r\n"));
+			mode = MOVEMENT;
+			//usart_print_P(PSTR("\r\n\n\nMotion mode is now: backward\r\n"));
 			break;
 		case SPINLEFT_CMD:
 			motionMode = SPINLEFT;
-			usart_print_P(PSTR("\r\n\n\nMotion mode is now: spin left\r\n"));
+			mode = MOVEMENT;
+			//usart_print_P(PSTR("\r\n\n\nMotion mode is now: spin left\r\n"));
 			break;
 		case SPINRIGHT_CMD:
 			motionMode = SPINRIGHT;
-			usart_print_P(PSTR("\r\n\n\nMotion mode is now: spin right\r\n"));
+			mode = MOVEMENT;
+			//usart_print_P(PSTR("\r\n\n\nMotion mode is now: spin right\r\n"));
 			break;
 		case STOP_CMD:
 			motionMode = STOP;
-			usart_print_P(PSTR("\r\n\n\nMotion mode is now: stop\r\n"));
+			mode = STOP;
+			//usart_print_P(PSTR("\r\n\n\nMotion mode is now: stop\r\n"));
+			break;
+		case SCAN_TEMPERATURE_CMD:
+			motionMode = STOP;
+			mode = SCAN_TEMPERATURES;
+			//usart_print_P(PSTR("\r\n\n\nMotion mode is now: scan temperatures\r\n"));
+			break;
+		case SCAN_DISTANCE_CMD:
+			motionMode = STOP;
+			mode = SCAN_DISTANCE;
+			//usart_print_P(PSTR("\r\n\n\nMotion mode is now: scan distance\r\n"));
+			break;
+		case ATTACHMENT_MODE_CMD:
+			motionMode = SPINLEFT;
+			mode = ATTACHMENT;
+			//usart_print_P(PSTR("\r\n\n\nMotion mode is now: attachment mode\r\n"));
 			break;
 		default:
 			// no change in the motion mode
-			break;
-	}
-}
-
-/*!\brief
- *
- *\details
- *
- * @returns
- */
-static void UpdateMode(WebCommand cmd) {
-	switch(cmd) {
-		case ATTACHMENT_MODE_CMD:
-			break;
-		case WEB_CONTROL_MODE_CMD:
-			break;
-		default:
-			// no change in mode
 			break;
 	}
 }

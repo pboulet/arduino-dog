@@ -44,7 +44,7 @@ void InitSonarModule(void){
  *
  * @returns
  */
-float getDistance(void){
+void getDistance(float* objectDistance){
 
 	/* Set the data direction register to write
 	 * and set the sonar's input register to high. */
@@ -72,9 +72,7 @@ float getDistance(void){
 
 	/* Convert with respect to the speed of sound in air to \
 	 * get the distance traveled. */
-	float distance = 343.2F * timeDifference * 0.000001 / 2;
-
-	return distance;
+	*objectDistance = 343.2F * timeDifference * 0.000001 / 2;
 }
 
 /******************************************************************************************************************/

@@ -28,7 +28,7 @@
 /********************************************* Entry Points  ******************************************************/
 
 void InitSonarModule(void);
-float getDistance(void);
+void getDistance(float*);
 
 #endif
 

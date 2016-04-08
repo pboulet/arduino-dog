@@ -91,7 +91,7 @@ void FollowHuman(uint8_t* temperatures) {
 		if (avgtempLeft > avgtempCenter) {
 			//turn left
 			setMotionMode(SPINRIGHT);
-			while (risingEdgeL == 0 && risingEdgeL == 0) {
+			while (risingEdgeR == 0 && risingEdgeL == 0) {
 				risingEdgeL = motion_enc_read(MOTION_WHEEL_LEFT, NULL);
 				risingEdgeR = motion_enc_read(MOTION_WHEEL_RIGHT, NULL);
 			}
@@ -100,7 +100,7 @@ void FollowHuman(uint8_t* temperatures) {
 		} else if (avgtempRight > avgtempCenter) {
 			//turn right
 			setMotionMode(SPINLEFT);
-			while (risingEdgeL == 0 && risingEdgeL == 0) {
+			while (risingEdgeR == 0 && risingEdgeL == 0) {
 				risingEdgeL = motion_enc_read(MOTION_WHEEL_LEFT, NULL);
 				risingEdgeR = motion_enc_read(MOTION_WHEEL_RIGHT, NULL);
 			}

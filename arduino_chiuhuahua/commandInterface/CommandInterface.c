@@ -30,7 +30,7 @@
 /******************************************************************************************************************/
 
 
-static const uint8_t NUM_COMMANDS = 8;
+static const uint8_t NUM_COMMANDS = 9;
 
 const char commands[] = {
 	'F',
@@ -39,7 +39,8 @@ const char commands[] = {
 	'R',
 	'S',
 	'A',
-	'W',
+	'T',
+	'D',
 	'U'
 };
 
@@ -50,7 +51,8 @@ const char *commandsTxt[] = {
 	"Spin Right",
 	"Stop",
 	"Attachment Mode",
-	"Web Interface Mode",
+	"Temperature Scanning",
+	"Distance Scanning",
 	"Unknown Command"
 };
 
@@ -133,9 +135,13 @@ WebCommand GetCommand() {
 		usart_print_P(PSTR("\r\n\n\nCommand received: Attachment mode \r\n"));
 		return ATTACHMENT_MODE_CMD;
 
-	} else if (clientResponse == commands[WEB_CONTROL_MODE_CMD]) {
-		usart_print_P(PSTR("\r\n\n\nCommand received: Web Control Mode \r\n"));
-		return WEB_CONTROL_MODE_CMD;
+	} else if (clientResponse == commands[SCAN_TEMPERATURE_CMD]) {
+		usart_print_P(PSTR("\r\n\n\nCommand received: scan temperature mode \r\n"));
+		return SCAN_TEMPERATURE_CMD;
+
+	} else if ( clientResponse == commands[SCAN_DISTANCE_CMD]) {
+		usart_print_P(PSTR("\r\n\n\nCommand received: scan distance mode \r\n"));
+		return SCAN_DISTANCE_CMD;
 
 	} else {
 		usart_print_P(PSTR("\r\n\n\nCommand received: Default Command or nothing received\r\n"));
