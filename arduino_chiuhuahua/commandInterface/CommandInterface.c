@@ -107,9 +107,9 @@ void InitWebServer(void) {
 }
 
 WebCommand GetCommand() {
-	process_client_request();
+	char clientResponse = process_client_request();
 
-	char clientResponse = get_next_client_response();
+	//char clientResponse = get_next_client_response();
 
 	if (clientResponse == commands[FORWARD_CMD]) {
 		usart_print_P(PSTR("\r\n\n\nCommand received: Move forward \r\n"));

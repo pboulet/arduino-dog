@@ -223,9 +223,7 @@ static void InitSubModules(void) {
 	InitSonarModule();
 
 	/* Needs to be the last sub-module initialized because it enables interrupts. */
-	//InitWebInterface();
-
-
+	InitWebInterface();
 }
 
 static void InitUsart(void){
@@ -243,18 +241,19 @@ static void InitIntertaskCommunication(void) {
 	distance = malloc(sizeof(double));
 	centerServoPosition = malloc(sizeof(uint16_t));
 	objectDistance = malloc(sizeof(float));
+	attachmentState = malloc(sizeof(AttachmentState));
 
 	/* No distance was traveled on startup. */
 	*distance = 0;
-	mode = ATTACHMENT;
+	mode = SCAN_DISTANCE;
 	motionMode = STOP;
-	attachmentState = SEARCHING;
+	*attachmentState = SEARCHING;
 }
 
 static void CreateTasks(void) {
 	xTaskCreate(CommandMode, (const portCHAR*)"Execute CommandMode",256,NULL,4,NULL);
-	xTaskCreate(AttachmentMode, (const portCHAR *)"Execute AttachMode", 512, NULL, 3, NULL);
-	//xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 5, NULL);
+	//xTaskCreate(AttachmentMode, (const portCHAR *)"Execute AttachMode", 512, NULL, 3, NULL);
+	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 5, NULL);
 
 	usart_printf_P(PSTR("\r\n\nFree Heap Size: %u\r\n"),xPortGetFreeHeapSize() );
 
@@ -269,7 +268,7 @@ static void ProcessWebServerRequests(void* gvParameters) {
 		WebCommand cmd = GetCommand();
 		UpdateMotionMode(cmd);
 		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning WebServer Task\r\n"));
-		vTaskDelayUntil( &xLastWakeTime, (5000 / portTICK_PERIOD_MS));
+		vTaskDelayUntil( &xLastWakeTime, (1000 / portTICK_PERIOD_MS));
 	}
 }
 
@@ -279,13 +278,19 @@ static void CommandMode(void* gvParameters) {
 		//usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning CommandMode Task\r\n"));
 		if ( mode != ATTACHMENT){
 			ScanTemperatures();
+			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n1\r\n"));
 			ReadObjectDistance();
+			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n2\r\n"));
 			Move();
+			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n3\r\n"));
 			UpdateLED();
+			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n4\r\n"));
 			ReadSpeed();
+			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n5\r\n"));
 			UpdateInstrumentCluster();
+			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n6\r\n"));
 		}
-		vTaskDelayUntil( &xLastWakeTime, (1000 / portTICK_PERIOD_MS));
+		vTaskDelayUntil( &xLastWakeTime, (3000 / portTICK_PERIOD_MS));
 	}
 }
 
@@ -312,16 +317,16 @@ static void Attach(){
 		setMotionMode(STOP);
 		*attachmentState = TARGET_HIT;
 	} else {
-		FindHuman(temperatures);
+		if ( (*attachmentState) != PANIC)
+			*attachmentState = SEARCHING;
+		FindHuman(temperatures, attachmentState);
 	}
 }
 
-//static void Follow(void* gvParameters) {
 static void Follow(void){
 	FollowHuman(temperatures, attachmentState);
 }
 
-//static void Panic(void* gvParameters) {
 static void Panic(void){
 	PanicNoHuman(attachmentState);
 }
@@ -363,16 +368,7 @@ static void ReadSpeed() {
  */
 //static void ScanTemperatures(void*  gvParameters) {
 static void ScanTemperatures(void){
-	//TickType_t xLastWakeTime;
-
-	/* The xLastWakeTime variable needs to be initialised with the current tick
-	 count.  Note that this is the only time we access this variable.  From this
-	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	 API function. */
-//	xLastWakeTime = xTaskGetTickCount();
-//	while (1) {
 		if (mode == ATTACHMENT){
-			Sweep();
 			temperatureSweep(STOP, centerServoPosition);
 		} else if (mode == SCAN_TEMPERATURES) {
 			/* Override just so it keeps sweeping for now. */
@@ -383,12 +379,6 @@ static void ScanTemperatures(void){
 		    temperatureSweep(motionMode, centerServoPosition);
 		}
 		getTemperatureFromSensor(temperatures);
-		if ( mode == SCAN_TEMPERATURES) {
-//			vTaskDelayUntil(&xLastWakeTime, (100 / portTICK_PERIOD_MS));
-		} else {
-//			vTaskDelayUntil(&xLastWakeTime, (50 / portTICK_PERIOD_MS));
-		}
-//	}
 }
 
 /*!\brief Updates the LED to reflect the current motion mode.
@@ -431,17 +421,7 @@ static void UpdateLED()
  *
  * @returns none
  */
-//static void UpdateInstrumentCluster(void* gvParameters){
 static void UpdateInstrumentCluster(void){
-	//TickType_t xLastWakeTime;
-
-	/* The xLastWakeTime variable needs to be initialised with the current tick
-	 count.  Note that this is the only time we access this variable.  From this
-	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	 API function. */
-//	xLastWakeTime = xTaskGetTickCount();
-
-//	while(1) {
 		clearLCD();
 
 		char topRow[16] = "";
@@ -467,22 +447,18 @@ static void UpdateInstrumentCluster(void){
 			sprintf(topRow, "Scan Distance");
 			sprintf(bottomRow, "Object at:%.2f m", *objectDistance);
 		} else if ( mode == ATTACHMENT ) {
-			switch(*attachmentState) {
-				case SEARCHING:
-					sprintf(topRow, "SEARCHING...");
-					break;
-				case LOCKED_ON_TARGET:
-					sprintf(topRow, "LOCKED ON");
-					sprintf(bottomRow, "TARGET!");
-					break;
-				case TARGET_HIT:
-					sprintf(topRow, "TARGET HIT!");
-					break;
-				case PANIC:
-					sprintf(topRow, "PANIC!!!!!");
-					break;
+			AttachmentState state = *attachmentState;
+			if (state == PANIC) {
+				sprintf(topRow, "PANIC!");
+			} else if (state == SEARCHING) {
+				sprintf(topRow, "SEARCHING...");
+			} else if ( state == LOCKED_ON_TARGET) {
+				sprintf(topRow, "LOCKED ON");
+			} else if ( state == TARGET_HIT) {
+				sprintf(topRow, "TARGET HIT!");
 			}
-		} else {
+			sprintf(bottomRow, "Object at:%.2f m", *objectDistance);
+		}  else {
 			/* Average speed of the two wheels. */
 			double speed = (*speedLeft + *speedRight)/ 2.0;
 
@@ -494,8 +470,6 @@ static void UpdateInstrumentCluster(void){
 		}
 		writeLCDRowOne(topRow);
 		writeLCDRowTwo(bottomRow);
-//		vTaskDelayUntil(&xLastWakeTime, (400 / portTICK_PERIOD_MS));
-//	}
 }
 
 /*!\brief Sets the motion mode of the robot.
@@ -508,15 +482,9 @@ static void UpdateInstrumentCluster(void){
  */
 //static void Move(void* gvParameters){
 static void Move(void){
-//	TickType_t xLastWakeTime;
-
-//	while(1){
-//		xLastWakeTime = xTaskGetTickCount();
-		if ( motionMode != UNKNOWN ) {
-			setMotionMode(motionMode);
-		}
-//		vTaskDelayUntil( &xLastWakeTime, (2000 / portTICK_PERIOD_MS));
-//	}
+	if ( motionMode != UNKNOWN ) {
+		setMotionMode(motionMode);
+	}
 }
 
 //static void ReadObjectDistance(void* gvParameters) {

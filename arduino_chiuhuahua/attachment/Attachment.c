@@ -32,47 +32,48 @@ uint8_t HUMAN = 0;
 
 
 int panicCounter = 0;
+unsigned long panicTimer;
 
 /******************************************************************************************************************/
 
 /****************************************  ENTRY POINTS  **********************************************************/
 
-
-/*!\brief
- *
- *\details
- *
- * @param
- * @returns none
- */
-void Sweep(void) {
-	if (HUMAN == 0) {
-		setMotionMode(SPINRIGHT);
-	}
-}
-
-void FindHuman(uint8_t* temperatures) {
-	for (int i = 4; i < 6; i++) {
-		if (temperatures[i] >= HUMAN_TEMP
-				&& temperatures[i] <= HUMAN_TEMP + 7) {
-			HUMAN = 1;
-			break;
+void FindHuman(uint8_t* temperatures, AttachmentState* state) {
+	if ( (*state) != PANIC) {
+		for (int i = 4; i < 6; i++) {
+			if (temperatures[i] >= HUMAN_TEMP
+					&& temperatures[i] <= HUMAN_TEMP + 7) {
+				HUMAN = 1;
+				*state = LOCKED_ON_TARGET;
+				break;
+			}
 		}
 	}
 	if (HUMAN == 0) {
+		*state = SEARCHING;
+		setMotionMode(SPINRIGHT);
 		panicCounter++;
 	}
 }
 
 void PanicNoHuman(AttachmentState *state) {
-	if (panicCounter > 100 && HUMAN==0) {
+	if (panicCounter > 100 && HUMAN == 0) {
 		HUMAN = 2;
 		*state = PANIC;
 		setMotionMode(SPINLEFT);
+		panicTimer = time_in_microseconds();
 	} else if (HUMAN == 2) {
-		HUMAN = 0;
-		panicCounter = 0;
-		setMotionMode(STOP);
+		unsigned long panicTimeBefore = panicTimer;
+		unsigned long panicTimeAfter = time_in_microseconds();
+		unsigned long panicTimeBetween = panicTimeAfter - panicTimeBefore;
+
+		if ( panicTimeBetween > 60000000){
+			HUMAN = 0;
+			*state = SEARCHING;
+			panicCounter = 0;
+			setMotionMode(STOP);
+			panicTimer = 0;
+		}
 	}
 
 }
@@ -86,28 +87,26 @@ void FollowHuman(uint8_t* temperatures, AttachmentState *state) {
 	avgtempRight = (temperatures[6] + temperatures[7] + temperatures[8]) / 3;
 	avgtempCenter = (temperatures[4] + temperatures[5]) / 2;
 
-	if (HUMAN == 1) {
+	if (HUMAN == 1 && *state != TARGET_HIT) {
+		*state = LOCKED_ON_TARGET;
 		if (avgtempLeft > avgtempCenter) {
 			//turn left
 			setMotionMode(SPINRIGHT);
-		    delay_milliseconds(5);
+		    delay_milliseconds(50);
 		    setMotionMode(FORWARD);
-		    *state = LOCKED_ON_TARGET;
 		} else if (avgtempRight > avgtempCenter) {
 			//turn right
 			setMotionMode(SPINLEFT);
-		    delay_milliseconds(5);
+		    delay_milliseconds(50);
 		    setMotionMode(FORWARD);
-		    *state = LOCKED_ON_TARGET;
 		} else {
 			setMotionMode(FORWARD);
-		    *state = LOCKED_ON_TARGET;
 		}
+
 		if (avgtempLeft < HUMAN_TEMP && avgtempRight < HUMAN_TEMP
 				&& avgtempCenter < HUMAN_TEMP) {
 			HUMAN = 0;
 			*state = SEARCHING;
 		}
 	}
-
 }

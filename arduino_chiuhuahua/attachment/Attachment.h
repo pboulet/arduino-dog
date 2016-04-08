@@ -26,9 +26,7 @@
 
 typedef enum {TARGET_HIT, SEARCHING, LOCKED_ON_TARGET, PANIC} AttachmentState;
 
-void Sweep(void);
-
-void FindHuman(uint8_t*);
+void FindHuman(uint8_t*, AttachmentState*);
 
 void FollowHuman(uint8_t*, AttachmentState*);
 
