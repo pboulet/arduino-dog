@@ -64,9 +64,10 @@ void FindHuman(uint8_t* temperatures) {
 	}
 }
 
-void PanicNoHuman(void) {
+void PanicNoHuman(AttachmentState *state) {
 	if (panicCounter > 100 && HUMAN==0) {
 		HUMAN = 2;
+		*state = PANIC;
 		setMotionMode(SPINLEFT);
 	} else if (HUMAN == 2) {
 		HUMAN = 0;
@@ -76,12 +77,10 @@ void PanicNoHuman(void) {
 
 }
 
-void FollowHuman(uint8_t* temperatures) {
+void FollowHuman(uint8_t* temperatures, AttachmentState *state) {
 	uint8_t avgtempLeft = 0;
 	uint8_t avgtempRight = 0;
 	uint8_t avgtempCenter = 0;
-	int risingEdgeL = 0;
-	int risingEdgeR = 0;
 
 	avgtempLeft = (temperatures[1] + temperatures[2] + temperatures[3]) / 3;
 	avgtempRight = (temperatures[6] + temperatures[7] + temperatures[8]) / 3;
@@ -93,17 +92,21 @@ void FollowHuman(uint8_t* temperatures) {
 			setMotionMode(SPINRIGHT);
 		    delay_milliseconds(5);
 		    setMotionMode(FORWARD);
+		    *state = LOCKED_ON_TARGET;
 		} else if (avgtempRight > avgtempCenter) {
 			//turn right
 			setMotionMode(SPINLEFT);
 		    delay_milliseconds(5);
 		    setMotionMode(FORWARD);
+		    *state = LOCKED_ON_TARGET;
 		} else {
 			setMotionMode(FORWARD);
+		    *state = LOCKED_ON_TARGET;
 		}
 		if (avgtempLeft < HUMAN_TEMP && avgtempRight < HUMAN_TEMP
 				&& avgtempCenter < HUMAN_TEMP) {
 			HUMAN = 0;
+			*state = SEARCHING;
 		}
 	}
 

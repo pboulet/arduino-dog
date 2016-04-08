@@ -24,12 +24,14 @@
 // API cannot compile some of its type definitions
 #include <stdint.h>
 
+typedef enum {TARGET_HIT, SEARCHING, LOCKED_ON_TARGET, PANIC} AttachmentState;
+
 void Sweep(void);
 
 void FindHuman(uint8_t*);
 
-void FollowHuman(uint8_t*);
+void FollowHuman(uint8_t*, AttachmentState*);
 
-void PanicNoHuman(void);
+void PanicNoHuman(AttachmentState*);
 
 #endif

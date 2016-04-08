@@ -177,6 +177,12 @@ MotionMode motionMode;
  */
 Mode mode;
 
+/*!
+ * \var AttachmentState attachmentState
+ * \brief Holds the attachment state.
+ */
+AttachmentState *attachmentState;
+
 /******************************************************************************************************************/
 
 /****************************************  ENTRY POINTS  **********************************************************/
@@ -242,6 +248,7 @@ static void InitIntertaskCommunication(void) {
 	*distance = 0;
 	mode = ATTACHMENT;
 	motionMode = STOP;
+	attachmentState = SEARCHING;
 }
 
 static void CreateTasks(void) {
@@ -283,17 +290,15 @@ static void CommandMode(void* gvParameters) {
 }
 
 static void AttachmentMode(void* gvParameters) {
-	TickType_t xLastWakeTime;
-	xLastWakeTime = xTaskGetTickCount();
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 	while(1) {
-		//usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning AttachmentMode Task\r\n"));
 		if(mode == ATTACHMENT){
 			ScanTemperatures();
 			Attach();
 			Follow();
-			//vTaskDelay(10 / portTICK_PERIOD_MS);
+			ReadObjectDistance();
 			Panic();
-			//UpdateInstrumentCluster();
+			UpdateInstrumentCluster();
 		}
 		vTaskDelayUntil( &xLastWakeTime, (50 / portTICK_PERIOD_MS));
 	}
@@ -301,17 +306,24 @@ static void AttachmentMode(void* gvParameters) {
 
 //static void Attach(void* gvParameters) {
 static void Attach(){
-	FindHuman(temperatures);
+	/* Lowest distance the sensor can measure is 0.3 m
+	 * therefore we use an offset measured at the test track. */
+	if ( *objectDistance < 0.42 ) {
+		setMotionMode(STOP);
+		*attachmentState = TARGET_HIT;
+	} else {
+		FindHuman(temperatures);
+	}
 }
 
 //static void Follow(void* gvParameters) {
 static void Follow(void){
-	FollowHuman(temperatures);
+	FollowHuman(temperatures, attachmentState);
 }
 
 //static void Panic(void* gvParameters) {
 static void Panic(void){
-	PanicNoHuman();
+	PanicNoHuman(attachmentState);
 }
 
 
@@ -454,6 +466,22 @@ static void UpdateInstrumentCluster(void){
 		} else if ( mode  == SCAN_DISTANCE) {
 			sprintf(topRow, "Scan Distance");
 			sprintf(bottomRow, "Object at:%.2f m", *objectDistance);
+		} else if ( mode == ATTACHMENT ) {
+			switch(*attachmentState) {
+				case SEARCHING:
+					sprintf(topRow, "SEARCHING...");
+					break;
+				case LOCKED_ON_TARGET:
+					sprintf(topRow, "LOCKED ON");
+					sprintf(bottomRow, "TARGET!");
+					break;
+				case TARGET_HIT:
+					sprintf(topRow, "TARGET HIT!");
+					break;
+				case PANIC:
+					sprintf(topRow, "PANIC!!!!!");
+					break;
+			}
 		} else {
 			/* Average speed of the two wheels. */
 			double speed = (*speedLeft + *speedRight)/ 2.0;
@@ -493,22 +521,8 @@ static void Move(void){
 
 //static void ReadObjectDistance(void* gvParameters) {
 static void ReadObjectDistance(void){
-//	TickType_t xLastWakeTime; // keeps track of timing
-
-	/* The xLastWakeTime variable needs to be initialised with the current tick
-	 count.  Note that this is the only time we access this variable.  From this
-	 point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	 API function. */
-//	xLastWakeTime = xTaskGetTickCount();
-
-//	while (1) {
-	    //usart_fprintf_P(usartfd2,PSTR("Read Distance"));
-		if(mode==SCAN_DISTANCE){
+	if(mode == SCAN_DISTANCE || mode == ATTACHMENT)
 		getDistance(objectDistance);
-		}
-	    //usart_fprintf_P(usartfd2,PSTR("Distance : %f"), *objectDistance);
-//		vTaskDelayUntil(&xLastWakeTime, (300 / portTICK_PERIOD_MS));
-//	}
 }
 
 /*!\brief
