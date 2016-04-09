@@ -183,6 +183,16 @@ Mode mode;
  */
 AttachmentState *attachmentState;
 
+/*!
+ *
+ */
+TaskHandle_t attachmentMode;
+
+/*!
+ *
+ */
+TaskHandle_t webServer;
+
 /******************************************************************************************************************/
 
 /****************************************  ENTRY POINTS  **********************************************************/
@@ -245,17 +255,18 @@ static void InitIntertaskCommunication(void) {
 
 	/* No distance was traveled on startup. */
 	*distance = 0;
-	mode = SCAN_DISTANCE;
+	*speedLeft = 0;
+	*speedRight = 0;
+	mode = MOVEMENT;
 	motionMode = STOP;
 	*attachmentState = SEARCHING;
 }
 
 static void CreateTasks(void) {
-	xTaskCreate(CommandMode, (const portCHAR*)"Execute CommandMode",256,NULL,4,NULL);
-	//xTaskCreate(AttachmentMode, (const portCHAR *)"Execute AttachMode", 512, NULL, 3, NULL);
-	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 5, NULL);
+	xTaskCreate(CommandMode, (const portCHAR*)"Execute CommandMode",512,NULL,4,NULL);
+	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 5, &webServer);
 
-	usart_printf_P(PSTR("\r\n\nFree Heap Size: %u\r\n"),xPortGetFreeHeapSize() );
+	//usart_printf_P(PSTR("\r\n\nFree Heap Size: %u\r\n"),xPortGetFreeHeapSize() );
 
 }
 
@@ -267,7 +278,13 @@ static void ProcessWebServerRequests(void* gvParameters) {
 
 		WebCommand cmd = GetCommand();
 		UpdateMotionMode(cmd);
-		usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning WebServer Task\r\n"));
+
+		if ( mode == ATTACHMENT) {
+			xTaskCreate(AttachmentMode, (const portCHAR *)"Execute AttachMode", 256, NULL, 3, &attachmentMode);
+			vTaskDelete(webServer);
+		}
+
+		//usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning WebServer Task\r\n"));
 		vTaskDelayUntil( &xLastWakeTime, (1000 / portTICK_PERIOD_MS));
 	}
 }
@@ -277,16 +294,19 @@ static void CommandMode(void* gvParameters) {
 	while(1) {
 		//usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning CommandMode Task\r\n"));
 		if ( mode != ATTACHMENT){
-			ScanTemperatures();
+			//if ( mode == SCAN_TEMPERATURES)
+				ScanTemperatures();
 			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n1\r\n"));
-			ReadObjectDistance();
-			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n2\r\n"));
+			if ( mode == SCAN_DISTANCE )
+				ReadObjectDistance();
+			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n2\r\n"));}
 			Move();
 			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n3\r\n"));
 			UpdateLED();
 			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n4\r\n"));
-			ReadSpeed();
-			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n5\r\n"));
+			if ( mode == MOVEMENT )
+				ReadSpeed();
+			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n5\r\n"));}
 			UpdateInstrumentCluster();
 			//usart_fprintf_P(usartfd2,PSTR("\r\n\n\n6\r\n"));
 		}
@@ -345,12 +365,14 @@ static void Panic(void){
  * @returns none
  */
 static void ReadSpeed() {
+	if(mode == MOVEMENT){
 	if ( motionMode != STOP){
 		readSpeed(speedLeft, speedRight, distance);
 		updateRobotMotion(*speedLeft, *speedRight);
 	} else {
 		*speedLeft = 0;
 		*speedRight = 0;
+	}
 	}
 }
 
@@ -458,7 +480,7 @@ static void UpdateInstrumentCluster(void){
 				sprintf(topRow, "TARGET HIT!");
 			}
 			sprintf(bottomRow, "Object at:%.2f m", *objectDistance);
-		}  else {
+		}  else if ( mode == MOVEMENT ) {
 			/* Average speed of the two wheels. */
 			double speed = (*speedLeft + *speedRight)/ 2.0;
 
@@ -489,8 +511,7 @@ static void Move(void){
 
 //static void ReadObjectDistance(void* gvParameters) {
 static void ReadObjectDistance(void){
-	if(mode == SCAN_DISTANCE || mode == ATTACHMENT)
-		getDistance(objectDistance);
+	getDistance(objectDistance);
 }
 
 /*!\brief

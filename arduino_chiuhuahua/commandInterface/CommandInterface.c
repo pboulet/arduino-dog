@@ -112,39 +112,39 @@ WebCommand GetCommand() {
 	//char clientResponse = get_next_client_response();
 
 	if (clientResponse == commands[FORWARD_CMD]) {
-		usart_print_P(PSTR("\r\n\n\nCommand received: Move forward \r\n"));
+		//usart_print_P(PSTR("\r\n\n\nCommand received: Move forward \r\n"));
 		return FORWARD_CMD;
 
 	} else if (clientResponse == commands[BACKWARD_CMD]) {
-		usart_print_P(PSTR("\r\n\n\nCommand received: Move backward \r\n"));
+		//usart_print_P(PSTR("\r\n\n\nCommand received: Move backward \r\n"));
 		return BACKWARD_CMD;
 
 	} else if (clientResponse == commands[SPINLEFT_CMD]) {
-		usart_print_P(PSTR("\r\n\n\nCommand received: Spin Left \r\n"));
+		//usart_print_P(PSTR("\r\n\n\nCommand received: Spin Left \r\n"));
 		return SPINLEFT_CMD;
 
 	} else if (clientResponse == commands[SPINRIGHT_CMD]) {
-		usart_print_P(PSTR("\r\n\n\nCommand received: Spin Right \r\n"));
+		//usart_print_P(PSTR("\r\n\n\nCommand received: Spin Right \r\n"));
 		return SPINRIGHT_CMD;
 
 	} else if (clientResponse == commands[STOP_CMD]) {
-		usart_print_P(PSTR("\r\n\n\nCommand received: Stop \r\n"));
+		//usart_print_P(PSTR("\r\n\n\nCommand received: Stop \r\n"));
 		return STOP_CMD;
 
 	} else if (clientResponse == commands[ATTACHMENT_MODE_CMD]) {
-		usart_print_P(PSTR("\r\n\n\nCommand received: Attachment mode \r\n"));
+		//usart_print_P(PSTR("\r\n\n\nCommand received: Attachment mode \r\n"));
 		return ATTACHMENT_MODE_CMD;
 
 	} else if (clientResponse == commands[SCAN_TEMPERATURE_CMD]) {
-		usart_print_P(PSTR("\r\n\n\nCommand received: scan temperature mode \r\n"));
+		//usart_print_P(PSTR("\r\n\n\nCommand received: scan temperature mode \r\n"));
 		return SCAN_TEMPERATURE_CMD;
 
 	} else if ( clientResponse == commands[SCAN_DISTANCE_CMD]) {
-		usart_print_P(PSTR("\r\n\n\nCommand received: scan distance mode \r\n"));
+		//usart_print_P(PSTR("\r\n\n\nCommand received: scan distance mode \r\n"));
 		return SCAN_DISTANCE_CMD;
 
 	} else {
-		usart_print_P(PSTR("\r\n\n\nCommand received: Default Command or nothing received\r\n"));
+		//usart_print_P(PSTR("\r\n\n\nCommand received: Default Command or nothing received\r\n"));
 		return UNKNOWN_CMD;
 	}
 }
