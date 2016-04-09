@@ -183,16 +183,6 @@ Mode mode;
  */
 AttachmentState *attachmentState;
 
-/*!
- *
- */
-TaskHandle_t attachmentMode;
-
-/*!
- *
- */
-TaskHandle_t webServer;
-
 /******************************************************************************************************************/
 
 /****************************************  ENTRY POINTS  **********************************************************/
@@ -264,7 +254,8 @@ static void InitIntertaskCommunication(void) {
 
 static void CreateTasks(void) {
 	xTaskCreate(CommandMode, (const portCHAR*)"Execute CommandMode",512,NULL,4,NULL);
-	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 5, &webServer);
+	xTaskCreate(ProcessWebServerRequests, (const portCHAR *)"Process Web Server Requests", 1024, NULL, 5, NULL);
+    //xTaskCreate(AttachmentMode, (const portCHAR *)"Execute AttachMode", 512, NULL, 3, NULL);
 
 	//usart_printf_P(PSTR("\r\n\nFree Heap Size: %u\r\n"),xPortGetFreeHeapSize() );
 
@@ -278,11 +269,6 @@ static void ProcessWebServerRequests(void* gvParameters) {
 
 		WebCommand cmd = GetCommand();
 		UpdateMotionMode(cmd);
-
-		if ( mode == ATTACHMENT) {
-			xTaskCreate(AttachmentMode, (const portCHAR *)"Execute AttachMode", 256, NULL, 3, &attachmentMode);
-			vTaskDelete(webServer);
-		}
 
 		//usart_fprintf_P(usartfd2,PSTR("\r\n\n\nRunning WebServer Task\r\n"));
 		vTaskDelayUntil( &xLastWakeTime, (1000 / portTICK_PERIOD_MS));
