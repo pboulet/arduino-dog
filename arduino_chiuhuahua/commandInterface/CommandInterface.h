@@ -1,23 +1,19 @@
 /*
  * CommandInterface.h
  * Chico The Robot
- *
- * Authors: Patrice Boulet & Nick Dubus
  */
 
 /******************************************************************************************************************/
 
-/*!	\file MotionControl.h
+/*!	\file CommandInterface.h
  *
- * \author Patrice Boulet & Nick Dubus
+ * \author Patric Boulet & Nick Dubus
  *
  * \date April 13th, 2016
  *
- * \brief
- *
- * \details
- *
- *
+ * \brief Sets up a web server that processes
+ * client response and parses them to their
+ * associated commands in the context of the robot.
  */
 
 /******************************************************************************************************************/
@@ -31,6 +27,11 @@
 // API cannot compile some of its type definitions
 #include <stdint.h>
 
+/*!
+ * \enum WebCommand
+ * \brief All possible commands to be received
+ * from the web interface.
+ */
 typedef enum {
 	FORWARD_CMD,
 	BACKWARD_CMD,
@@ -38,30 +39,35 @@ typedef enum {
 	SPINRIGHT_CMD,
 	STOP_CMD,
 	ATTACHMENT_MODE_CMD,
-	WEB_CONTROL_MODE_CMD,
+	SCAN_TEMPERATURE_CMD,
+	SCAN_DISTANCE_CMD,
 	UNKNOWN_CMD
 } WebCommand;
 
 /*---------------------------------------  ENTRY POINTS  ---------------------------------------------------------*/
 
-/*!\brief Module initializer.
+/*!\fn InitWebInterface(void)
+ * \brief Module initializer.
  *
- *\details
+ *\details This entry point first enables interrupts in the system,
+ *\details which is required for the module to function correctly.
+ *\details It then initializes the wi-fi hot spot and web server sequentially.
  *
- * @param
  * @returns none
  */
 void InitWebInterface(void);
 
 
-/*!\brief
+/*!\fn GetCommand()
+ * \brief Parses client response and returns the associated
+ * WebCommand.
  *
- *\details
- *
- * @param
- * @returns none
+ * @returns WebCommand the WebCommand associated with the client response
+ * character, if any.
  */
 WebCommand GetCommand(void);
+
+/******************************************************************************************************************/
 
 #endif
 

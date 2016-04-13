@@ -1,17 +1,19 @@
 /*
- * sonar.c
+ * Sonar.c
  * Chico The Robot
  */
 
 /******************************************************************************************************************/
 
-/*!	\file sonar.c
+/*!	\file Sonar.c
  *
- * \author
+ * \author Patrice Boulet, Ladan Maxamud, Alexander Teske,
+ * Adnane Gasmi, Nick Dubus, Justin Langis
  *
- * \date
+ * \date 2016-04-12
  *
- * \brief
+ * \brief Module that detects the distance between the robot and
+ * objects in front of it by using a sonar.
  *
  */
 
@@ -32,19 +34,31 @@
 
 /********************************************* Entry Points  ******************************************************/
 
-/******************************************************************************************************************/
 
-/******************************************* Local functions  *****************************************************/
-
+/*!\fn InitSonarModule(void)
+ * \brief Module initializer.
+ *
+ *\details Initializes the timer module
+ *\details that is used in the sonar module.
+ *
+ * @returns none
+ */
 void InitSonarModule(void){
 	initialize_module_timer0();
 }
 
-/*!\brief
+
+/*!\fn getDistance(float* objectDistance)
+ * \brief Gets the distance of the object
+ * in front of the robot.  Works for objects
+ * ranging from 0.3m to 3m in distance.
  *
- * @returns
+ * @param objectDistance distance between the robot
+ * and the object in front of it.
+ *
+ * @returns none
  */
-float getDistance(void){
+void getDistance(float* objectDistance){
 
 	/* Set the data direction register to write
 	 * and set the sonar's input register to high. */
@@ -72,9 +86,11 @@ float getDistance(void){
 
 	/* Convert with respect to the speed of sound in air to \
 	 * get the distance traveled. */
-	float distance = 343.2F * timeDifference * 0.000001 / 2;
-
-	return distance;
+	*objectDistance = 343.2F * timeDifference * 0.000001 / 2;
 }
+
+/******************************************************************************************************************/
+
+/******************************************* Local functions  *****************************************************/
 
 /******************************************************************************************************************/

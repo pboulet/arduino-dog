@@ -1452,7 +1452,7 @@ void start_web_server(void){
  *
  *
  */
-void process_client_request(void){
+char process_client_request(void){
 
 	char data_string[128] = "\0";
 	char html_string[128] = "\0";
@@ -1549,6 +1549,7 @@ void process_client_request(void){
 			}
 		}
 	}
+	return client_response;
 }
 
 
@@ -1896,9 +1897,9 @@ uint16_t gs_get_command_response(char *gs_command_response, uint16_t polling_per
 
 	 #if SET_GAINSPAN_TERMINAL_OUTPUT_ON == 1
 	 	 /*Send the actual command to serial terminal for debugging*/
- 	 	 usart_xfprint(gainspan.serial_terminal_usart_id, (uint8_t *) "\n\rResponse:");
+ 	 	 //usart_xfprint(gainspan.serial_terminal_usart_id, (uint8_t *) "\n\rResponse:");
 	 	 usart_xfprint(gainspan.serial_terminal_usart_id, (uint8_t *) gs_command_response);
- 	 	 usart_xfprint(gainspan.serial_terminal_usart_id, (uint8_t *) "\n\r");
+ 	 	 //usart_xfprint(gainspan.serial_terminal_usart_id, (uint8_t *) "\n\r");
 	 #endif
 
 	 return number_of_characters_read;
