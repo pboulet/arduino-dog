@@ -37,8 +37,6 @@
 #include "queue.h"
 #include "semphr.h"
 
-#include "usartserial.h"
-
 /******************************************************************************************************************/
 
 MotionMode motionMode;											/* Current motion mode of the robot (e.g. FORWARD) */
@@ -77,7 +75,7 @@ int totalDistance = 0;
  * @param servoPosition Current position of the thermal array sensor in ticks.
  * @returns none
  */
-void initMotionControl(uint16_t* servoPosition) {
+void InitMotionControl(uint16_t* servoPosition) {
 	*servoPosition = INITIAL_PULSE_WIDTH_TICKS;
 	motion_servo_set_pulse_width(MOTION_SERVO_CENTER, *servoPosition);
 	motion_servo_start(MOTION_SERVO_CENTER);
@@ -224,31 +222,26 @@ void updateRobotMotion(float currentSpeedLeftWheel, float currentSpeedRightWheel
  * @returns none
  */
 void readSpeed(float *leftWheelSpeed, float *rightWheelSpeed, float* distanceTravelled) {
-    //!!!
-    //!!!
-    //!!! The Left Encoder reads from the Right Wheel!
-    //!!!
-    //!!!
+    /* WARNING:  The Left Encoder reads from the Right Wheel! */
+
 
     uint32_t leftWheelNewReading = 0;
     uint32_t rightWheelNewReading = 0;
     int isNewReading = 0;
 
-    //LEFT WHEEL
+    /*Left wheel. */
     if(moving == 1){
-        //get new reading if available
+        /* Get new reading if available. */
         isNewReading = motion_enc_read(IC_LEFT_WHEEL, &leftWheelNewReading);
         if(isNewReading == 1){
             leftReadCnt += 1;
             leftAvg = (leftAvg * (leftReadCnt-1) + leftWheelNewReading) / leftReadCnt;
             *leftWheelSpeed = DIST_BETWEEN_ENCODER_REFLECTIVE_SPEED_CSTE / leftAvg;
-            usart_printf_P(PSTR("LEFT WHEEL READING: %.4f \r\n"), *leftWheelSpeed);
-
         }
     }
-    //RIGHT WHEEL
+    /* Right wheel. */
     if(moving == 1){
-        //get new reading if available
+        /* Get new reading if available. */
         isNewReading = motion_enc_read(IC_RIGHT_WHEEL, &rightWheelNewReading);
         if(isNewReading == 1){
             rightReadCnt += 1;
@@ -278,10 +271,9 @@ using this "custom formla" we can adjust readings as to avoid calculating strang
 */
 void calcDistance(float* distanceTravelled){
     if (leftAvg > 0.0 && rightAvg > 0.0){
-        //calculate the average number of encoders read (e.g. using count) and multiply by the distance separating them.
+        /* Calculate the average number of encoders read (e.g. using count) and multiply by the distance separating them. */
         legDistance = ( (rightReadCnt + leftReadCnt)/2 ) * DIST_BETWEEN_ENCODER_REFLECTIVE;
         *distanceTravelled = legDistance + totalDistance;
-        //usart_printf_P(PSTR("AVG SPEED %.4f m.s(LW:%.4f m.s, RW:%.4f m.s)    DIST: %.4f m\r\n"), avgSpeed, leftWheelSpeed, rightWheelSpeed, distanceTraveled);
     }
 }
 
