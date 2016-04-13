@@ -148,7 +148,7 @@
 #include <util/delay.h>
 
 /* module includes */
-#include "include/wireless_interface.h"				/* module include */
+#include "wireless_interface.h"				/* module include */
 
 
 /******************************************************************************************************************/

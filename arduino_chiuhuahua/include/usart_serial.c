@@ -90,8 +90,8 @@
 
 #include "ringBuffer.h"
 
-#include "include/bit_definitions.h"
-#include "include/usart_serial.h"
+#include "bit_definitions.h"
+#include "usart_serial.h"
 
 
 /*---------------------------------------------------------------------

@@ -1,17 +1,19 @@
 /*
- * sonar.c
+ * Sonar.c
  * Chico The Robot
  */
 
 /******************************************************************************************************************/
 
-/*!	\file sonar.c
+/*!	\file Sonar.c
  *
- * \author
+ * \author Patrice Boulet, Ladan Maxamud, Alexander Teske,
+ * Adnane Gasmi, Nick Dubus, Justin Langis
  *
- * \date
+ * \date 2016-04-12
  *
- * \brief
+ * \brief Module that detects the distance between the robot and
+ * objects in front of it by using a sonar.
  *
  */
 
@@ -32,17 +34,29 @@
 
 /********************************************* Entry Points  ******************************************************/
 
-/******************************************************************************************************************/
 
-/******************************************* Local functions  *****************************************************/
-
+/*!\fn InitSonarModule(void)
+ * \brief Module initializer.
+ *
+ *\details Initializes the timer module
+ *\details that is used in the sonar module.
+ *
+ * @returns none
+ */
 void InitSonarModule(void){
 	initialize_module_timer0();
 }
 
-/*!\brief
+
+/*!\fn getDistance(float* objectDistance)
+ * \brief Gets the distance of the object
+ * in front of the robot.  Works for objects
+ * ranging from 0.3m to 3m in distance.
  *
- * @returns
+ * @param objectDistance distance between the robot
+ * and the object in front of it.
+ *
+ * @returns none
  */
 void getDistance(float* objectDistance){
 
@@ -74,5 +88,9 @@ void getDistance(float* objectDistance){
 	 * get the distance traveled. */
 	*objectDistance = 343.2F * timeDifference * 0.000001 / 2;
 }
+
+/******************************************************************************************************************/
+
+/******************************************* Local functions  *****************************************************/
 
 /******************************************************************************************************************/
